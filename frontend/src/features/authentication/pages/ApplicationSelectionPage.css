@@ -1,0 +1,114 @@
+.application-selection {
+  width: min(100%, 860px);
+  margin: 0 auto;
+  padding: clamp(24px, 6vw, 72px) 0;
+}
+
+.application-selection-header {
+  margin-bottom: 28px;
+}
+
+.application-selection-header h1 {
+  margin: 8px 0 10px;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+}
+
+.application-selection-header p {
+  margin: 0;
+  color: #707084;
+  font-size: 15px;
+}
+
+.application-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.application-option {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 18px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #e4e4ed;
+  border-radius: 14px;
+  color: #18181b;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.application-option:hover,
+.application-option:focus-visible {
+  border-color: #584cb9;
+  box-shadow: 0 8px 22px rgba(88, 76, 185, 0.12);
+  transform: translateY(-1px);
+}
+
+.application-option:focus-visible {
+  outline: 2px solid #584cb9;
+  outline-offset: 3px;
+}
+
+.application-option-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #efedff;
+  color: #584cb9;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.application-processing .application-option-icon {
+  background: #fff2df;
+  color: #b45309;
+}
+
+.application-analysis .application-option-icon {
+  background: #e4f8f0;
+  color: #0f9f75;
+}
+
+.application-option-content {
+  display: grid;
+  gap: 5px;
+}
+
+.application-option-content strong {
+  font-size: 17px;
+}
+
+.application-option-content span {
+  color: #707084;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.application-option-arrow {
+  color: #584cb9;
+  font-size: 24px;
+}
+
+@media (max-width: 640px) {
+  .application-selection {
+    padding: 24px 0;
+  }
+
+  .application-option {
+    grid-template-columns: 44px 1fr auto;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .application-option-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 18px;
+  }
+}
