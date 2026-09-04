@@ -36,3 +36,9 @@ Requester navigation and route names are centralized in `src/features/requester/
 Users receive application access from `UserApplicationAccess`. Login returns the allowed applications and JWTs contain `application` claims. APIs should protect application-specific controllers with `RequesterAccess`, `ProcessingAccess`, or `AnalysisAccess` policies.
 
 Keep application-specific workflows in their own feature boundary. Shared code belongs in Domain, Common, or shared frontend modules only when it is genuinely shared.
+
+## Application APIs
+
+- Requester: `/api/tickets` and `/api/auth`.
+- Processing: `GET /api/processing/queue`, protected by `ProcessingAccess`.
+- Analysis: `GET /api/analysis/overview`, protected by `AnalysisAccess`.
