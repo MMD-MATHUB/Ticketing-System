@@ -1,0 +1,26 @@
+# .NET build output
+**/bin/
+**/obj/
+
+# Node dependencies and build output
+**/node_modules/
+**/dist/
+
+# Local environment files
+**/*.local
+**/.env
+**/.env.*
+
+# IDE and OS files
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.user
+*.suo
+.DS_Store
+
+# Logs and local databases
+*.log
+*.db
+*.sqlite
