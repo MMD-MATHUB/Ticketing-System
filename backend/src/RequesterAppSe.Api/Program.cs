@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using FluentValidation;
 using RequesterAppSe.Application.Interfaces;
+using RequesterAppSe.Application.Analysis;
+using RequesterAppSe.Application.Processing;
 using RequesterAppSe.Application.Services;
 using RequesterAppSe.Infrastructure.Persistence;
 using RequesterAppSe.Infrastructure.Repositories;
@@ -77,6 +79,8 @@ else
 
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<TicketService>();
+builder.Services.AddScoped<ProcessingService>();
+builder.Services.AddScoped<AnalysisService>();
 
 var app = builder.Build();
 
