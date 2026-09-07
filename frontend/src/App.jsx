@@ -12,6 +12,11 @@ import './App.css'
 
 const API_BASE_URL = '/api'
 
+const CLOSED_CANCELLED_TABS = [
+  { key: 'closed', label: 'Closed tickets', statuses: ['Resolved'] },
+  { key: 'cancelled', label: 'Cancelled tickets', statuses: ['Cancelled'] },
+]
+
 function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated)
   const navigate = useNavigate()
@@ -36,8 +41,9 @@ function App() {
           <Route path="/tickets/new" element={<NewTicketPage />} />
           <Route path="/tickets/not-started" element={<TicketListPage title="Not started tickets" subtitle="Tickets awaiting processing" view="not-started" />} />
           <Route path="/tickets/in-progress" element={<TicketListPage title="In progress tickets" subtitle="Tickets currently being worked on" view="in-progress" />} />
-          <Route path="/tickets/closed" element={<TicketListPage title="Closed tickets" subtitle="Resolved and cancelled tickets" view="closed" />} />
+          <Route path="/tickets/closed" element={<TicketListPage title="Closed / Cancelled tickets" subtitle="Tickets that have been resolved or cancelled" view="closed" tabs={CLOSED_CANCELLED_TABS} />} />
           <Route path="/tickets/pending-reply" element={<TicketListPage title="Pending Requester Comment" subtitle="Tickets waiting for your response" view="pending-reply" />} />
+          <Route path="/tickets/recent" element={<RecentTicketsPage />} />
           <Route path="/tickets/search" element={<SearchPage />} />
           <Route path="/tickets/:ticketNumber" element={<TicketDetailPage />} />
         </Routes></AppShell>
@@ -186,7 +192,7 @@ function DashboardPage() {
               <div className="panel-title">Recent tickets</div>
               <div className="panel-subtitle">Your latest submitted requests</div>
             </div>
-            <button type="button" className="text-button" onClick={() => navigate('/tickets')}>View all</button>
+            <button type="button" className="text-button" onClick={() => navigate('/tickets/recent')}>View all</button>
           </div>
           <div className="recent-ticket-list">
             {dashboard.recentTickets.map((ticket) => (
@@ -546,12 +552,20 @@ function NewTicketPage() {
   )
 }
 
-function TicketListPage({ title, view }) {
+const truncateText = (value, maxLength = 80) => {
+  if (!value) return ''
+  if (value.length <= maxLength) return value
+  return `${value.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`
+}
+
+function TicketListPage({ title, subtitle, view, tabs }) {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [plantFilter, setPlantFilter] = useState('')
   const [ticketFilter, setTicketFilter] = useState('')
   const [materialFilter, setMaterialFilter] = useState('')
+  const [activeTab, setActiveTab] = useState(tabs?.[0]?.key ?? null)
+  const [refreshIndex, setRefreshIndex] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -566,40 +580,195 @@ function TicketListPage({ title, view }) {
       })
 
     return () => { active = false }
-  }, [view])
+  }, [view, refreshIndex])
 
-  const visible = tickets.filter((ticket) => {
+  const activeTabConfig = tabs?.find((tab) => tab.key === activeTab)
+  const tabTickets = activeTabConfig ? tickets.filter((ticket) => activeTabConfig.statuses.includes(ticket.status)) : tickets
+
+  const visible = tabTickets.filter((ticket) => {
     const plantMatch = !plantFilter || ticket.plantName === plantFilter
     const ticketMatch = !ticketFilter || ticket.ticketNumber === ticketFilter
-    const materialMatch = !materialFilter || ticket.title.toLowerCase().includes(materialFilter.toLowerCase())
+    const normalizedMaterialQuery = materialFilter.trim().toLowerCase()
+    const searchableRowText = [
+      ticket.title,
+      ticket.ticketType,
+      ticket.plantName,
+      ticket.ticketNumber,
+      ticket.description || '',
+      prettyStatus(ticket.status),
+    ].join(' ').toLowerCase()
+    const materialMatch = !normalizedMaterialQuery || searchableRowText.includes(normalizedMaterialQuery)
     return plantMatch && ticketMatch && materialMatch
   })
 
-  const plants = [...new Set(tickets.map((ticket) => ticket.plantName).filter(Boolean))]
+  const plants = [...new Set(tabTickets.map((ticket) => ticket.plantName).filter(Boolean).sort())]
+  const ticketNumbers = [...new Set(tabTickets.map((ticket) => ticket.ticketNumber).filter(Boolean))]
 
   if (loading) {
     return <section className="page"><div className="panel state-panel">Loading tickets...</div></section>
   }
 
   return (
-    <section className="page">
-      <header className="page-header compact">
+    <section className="page ticket-list-page">
+      <header className="page-header ticket-page-header compact">
         <div>
           <div className="eyebrow">Tickets</div>
-          <h1>{title}</h1>
+          <div className="ticket-title-row">
+            <h1>{title}</h1>
+            {tabs && (
+              <div className="ticket-status-tabs" role="tablist" aria-label="Ticket state">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === tab.key}
+                    className={activeTab === tab.key ? 'active' : ''}
+                    onClick={() => { setActiveTab((current) => (current === tab.key ? null : tab.key)); setPlantFilter(''); setTicketFilter(''); setMaterialFilter('') }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {subtitle && <p className="ticket-page-subtitle">{subtitle}</p>}
+        </div>
+        {tabs && <button type="button" className="refresh-button" onClick={() => { setLoading(true); setRefreshIndex((current) => current + 1) }}>Refresh</button>}
+      </header>
+
+      <div className="panel table-card ticket-table-card">
+        <div className="filters">
+          <label>
+            <span>Plant</span>
+            <SearchableSelect value={plantFilter} onChange={setPlantFilter} options={plants.map((plant) => ({ value: plant, label: plant }))} placeholder="Search plants" />
+          </label>
+          <label>
+            <span>Ticket</span>
+            <SearchableSelect value={ticketFilter} onChange={setTicketFilter} options={ticketNumbers.map((ticketNumber) => ({ value: ticketNumber, label: ticketNumber }))} placeholder="Search tickets" />
+          </label>
+          <label>
+            <span>Material</span>
+            <input value={materialFilter} onChange={(e) => setMaterialFilter(e.target.value)} placeholder="Type material..." />
+          </label>
+        </div>
+
+        <div className="table-wrap">
+          {visible.length ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>Ticket</th>
+                  <th>Created on</th>
+                  <th>Ticket Type</th>
+                  <th>Plant</th>
+                  <th>Status</th>
+                  <th>Materials</th>
+                  <th>Ticket Reason</th>
+                  <th>Site/Base/Windfarm name</th>
+                  <th>Platform/Turbine number</th>
+                  <th>Sourcing Country</th>
+                  <th>Description</th>
+                  <th>Modified on</th>
+                  <th>Is Escalated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((ticket) => (
+                  <tr key={ticket.ticketNumber} onClick={() => window.location.href = `/tickets/${ticket.ticketNumber}`}>
+                    <td>{ticket.ticketNumber}</td>
+                    <td>{new Date(ticket.createdAt).toLocaleString()}</td>
+                    <td>{ticket.ticketType}</td>
+                    <td>{ticket.plantName}</td>
+                    <td>{prettyStatus(ticket.status)}</td>
+                    <td>{getMaterialsValue(ticket)}</td>
+                    <td>{ticket.title}</td>
+                    <td>{ticket.siteName || '—'}</td>
+                    <td>{ticket.equipmentNumber || '—'}</td>
+                    <td>{getSourcingCountry(ticket)}</td>
+                    <td>{truncateText(ticket.description || '—', 60)}</td>
+                    <td>{new Date(ticket.updatedAt).toLocaleString()}</td>
+                    <td>{getEscalationValue(ticket)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="empty">No {activeTabConfig ? activeTabConfig.label.toLowerCase() : 'tickets'} found.</div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function RecentTicketsPage() {
+  const [tickets, setTickets] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [plantFilter, setPlantFilter] = useState('')
+  const [ticketFilter, setTicketFilter] = useState('')
+  const [materialFilter, setMaterialFilter] = useState('')
+
+  useEffect(() => {
+    let active = true
+
+    apiClient.get(`${API_BASE_URL}/tickets`)
+      .then((response) => response.data)
+      .then((data) => {
+        if (active) setTickets(data)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => { active = false }
+  }, [])
+
+  const sorted = useMemo(
+    () => [...tickets].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    [tickets]
+  )
+
+  const visible = sorted.filter((ticket) => {
+    const plantMatch = !plantFilter || ticket.plantName === plantFilter
+    const ticketMatch = !ticketFilter || ticket.ticketNumber === ticketFilter
+    const normalizedMaterialQuery = materialFilter.trim().toLowerCase()
+    const searchableRowText = [
+      ticket.title,
+      ticket.ticketType,
+      ticket.plantName,
+      ticket.ticketNumber,
+      ticket.description || '',
+      prettyStatus(ticket.status),
+    ].join(' ').toLowerCase()
+    const materialMatch = !normalizedMaterialQuery || searchableRowText.includes(normalizedMaterialQuery)
+    return plantMatch && ticketMatch && materialMatch
+  })
+
+  const plants = [...new Set(tickets.map((ticket) => ticket.plantName).filter(Boolean).sort())]
+  const ticketNumbers = [...new Set(tickets.map((ticket) => ticket.ticketNumber).filter(Boolean))]
+
+  const plantFilterOptions = plants.map((plant) => ({ value: plant, label: plant }))
+  const ticketFilterOptions = ticketNumbers.map((ticketNumber) => ({ value: ticketNumber, label: ticketNumber }))
+
+  if (loading) {
+    return <section className="page"><div className="panel state-panel">Loading tickets...</div></section>
+  }
+
+  return (
+    <section className="page ticket-list-page">
+      <header className="page-header ticket-page-header compact">
+        <div>
+          <div className="eyebrow">Tickets</div>
+          <h1>Recent tickets</h1>
+          <p className="ticket-page-subtitle">Your most recently created tickets</p>
         </div>
       </header>
 
-      <div className="panel table-card">
+      <div className="panel table-card ticket-table-card">
         <div className="filters">
-          <select value={plantFilter} onChange={(e) => setPlantFilter(e.target.value)}>
-            <option value="">Search by plant</option>
-            {plants.map((plant) => <option key={plant} value={plant}>{plant}</option>)}
-          </select>
-          <select value={ticketFilter} onChange={(e) => setTicketFilter(e.target.value)}>
-            <option value="">Search by ticket</option>
-            {tickets.map((ticket) => <option key={ticket.ticketNumber} value={ticket.ticketNumber}>{ticket.ticketNumber}</option>)}
-          </select>
+          <SearchableSelect value={plantFilter} onChange={setPlantFilter} options={plantFilterOptions} placeholder="Search by plant" />
+          <SearchableSelect value={ticketFilter} onChange={setTicketFilter} options={ticketFilterOptions} placeholder="Search by ticket" />
           <input value={materialFilter} onChange={(e) => setMaterialFilter(e.target.value)} placeholder="Type material..." />
         </div>
 
@@ -613,7 +782,14 @@ function TicketListPage({ title, view }) {
                   <th>Ticket Type</th>
                   <th>Plant</th>
                   <th>Status</th>
-                  <th>Title</th>
+                  <th>Materials</th>
+                  <th>Ticket Reason</th>
+                  <th>Site/Base/Windfarm name</th>
+                  <th>Platform/Turbine number</th>
+                  <th>Sourcing Country</th>
+                  <th>Description</th>
+                  <th>Modified on</th>
+                  <th>Is Escalated</th>
                 </tr>
               </thead>
               <tbody>
@@ -624,7 +800,14 @@ function TicketListPage({ title, view }) {
                     <td>{ticket.ticketType}</td>
                     <td>{ticket.plantName}</td>
                     <td>{prettyStatus(ticket.status)}</td>
+                    <td>{getMaterialsValue(ticket)}</td>
                     <td>{ticket.title}</td>
+                    <td>{ticket.siteName || '—'}</td>
+                    <td>{ticket.equipmentNumber || '—'}</td>
+                    <td>{getSourcingCountry(ticket)}</td>
+                    <td>{truncateText(ticket.description || '—', 60)}</td>
+                    <td>{new Date(ticket.updatedAt).toLocaleString()}</td>
+                    <td>{getEscalationValue(ticket)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -640,6 +823,8 @@ function TicketListPage({ title, view }) {
 
 function SearchPage() {
   const [plants, setPlants] = useState([])
+  const [tickets, setTickets] = useState([])
+  const [requesters, setRequesters] = useState([])
   const [results, setResults] = useState([])
   const [filters, setFilters] = useState({ ticket: '', ticketType: '', plant: '', ticketStatus: '', requester: '' })
 
@@ -648,6 +833,19 @@ function SearchPage() {
       .then((response) => response.data)
       .then((data) => setPlants(data))
       .catch(() => setPlants([]))
+  }, [])
+
+  useEffect(() => {
+    apiClient.get(`${API_BASE_URL}/tickets`)
+      .then((response) => response.data)
+      .then((data) => {
+        setTickets(data)
+        setRequesters([...new Set(data.map((ticket) => ticket.requesterName).filter(Boolean).sort())])
+      })
+      .catch(() => {
+        setTickets([])
+        setRequesters([])
+      })
   }, [])
 
   useEffect(() => {
@@ -664,6 +862,31 @@ function SearchPage() {
 
   const updateFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }))
 
+  const ticketOptions = tickets.map((ticket) => ({
+    value: ticket.ticketNumber,
+    label: ticket.ticketNumber,
+  }))
+
+  const plantOptions = plants.map((plant) => ({
+    value: plant.name,
+    label: plant.name,
+  }))
+
+  const ticketTypeOptions = ['Activation', 'Material request', 'Additional requester'].map((type) => ({
+    value: type,
+    label: type,
+  }))
+
+  const ticketStatusOptions = ['NotStarted', 'InProgress', 'Resolved', 'Cancelled'].map((status) => ({
+    value: status,
+    label: prettyStatus(status),
+  }))
+
+  const requesterOptions = requesters.map((requester) => ({
+    value: requester,
+    label: requester,
+  }))
+
   return (
     <section className="page">
       <header className="page-header compact">
@@ -674,28 +897,29 @@ function SearchPage() {
       </header>
 
       <div className="filter-grid">
-        <label><span>Ticket</span><input value={filters.ticket} onChange={(e) => updateFilter('ticket', e.target.value)} /></label>
-        <label><span>Ticket Type</span><select value={filters.ticketType} onChange={(e) => updateFilter('ticketType', e.target.value)}>
-          <option value="">All</option>
-          <option value="Activation">Activation</option>
-          <option value="Material request">Material request</option>
-          <option value="Additional requester">Additional requester</option>
-        </select></label>
-        <label><span>Plant</span><select value={filters.plant} onChange={(e) => updateFilter('plant', e.target.value)}>
-          <option value="">All</option>
-          {plants.map((plant) => <option key={plant.id} value={plant.name}>{plant.name}</option>)}
-        </select></label>
-        <label><span>Ticket Status</span><select value={filters.ticketStatus} onChange={(e) => updateFilter('ticketStatus', e.target.value)}>
-          <option value="">All</option>
-          <option value="NotStarted">Not started</option>
-          <option value="InProgress">In progress</option>
-          <option value="Resolved">Resolved</option>
-          <option value="Cancelled">Cancelled</option>
-        </select></label>
-        <label><span>Requester</span><input value={filters.requester} onChange={(e) => updateFilter('requester', e.target.value)} /></label>
+        <label>
+          <span>Ticket</span>
+          <SearchableSelect value={filters.ticket} onChange={(value) => updateFilter('ticket', value)} options={ticketOptions} placeholder="Search tickets" />
+        </label>
+        <label>
+          <span>Ticket Type</span>
+          <SearchableSelect value={filters.ticketType} onChange={(value) => updateFilter('ticketType', value)} options={ticketTypeOptions} placeholder="Search types" />
+        </label>
+        <label>
+          <span>Plant</span>
+          <SearchableSelect value={filters.plant} onChange={(value) => updateFilter('plant', value)} options={plantOptions} placeholder="Search plants" />
+        </label>
+        <label>
+          <span>Ticket Status</span>
+          <SearchableSelect value={filters.ticketStatus} onChange={(value) => updateFilter('ticketStatus', value)} options={ticketStatusOptions} placeholder="Search statuses" />
+        </label>
+        <label>
+          <span>Requester</span>
+          <SearchableSelect value={filters.requester} onChange={(value) => updateFilter('requester', value)} options={requesterOptions} placeholder="Search requesters" />
+        </label>
       </div>
 
-      <div className="panel table-card">
+      <div className="panel table-card ticket-table-card">
         <div className="table-wrap">
           {results.length ? (
             <table>
@@ -706,7 +930,14 @@ function SearchPage() {
                   <th>Ticket Type</th>
                   <th>Plant</th>
                   <th>Status</th>
-                  <th>Title</th>
+                  <th>Materials</th>
+                  <th>Ticket Reason</th>
+                  <th>Site/Base/Windfarm name</th>
+                  <th>Platform/Turbine number</th>
+                  <th>Sourcing Country</th>
+                  <th>Description</th>
+                  <th>Modified on</th>
+                  <th>Is Escalated</th>
                 </tr>
               </thead>
               <tbody>
@@ -717,7 +948,14 @@ function SearchPage() {
                     <td>{ticket.ticketType}</td>
                     <td>{ticket.plantName}</td>
                     <td>{prettyStatus(ticket.status)}</td>
+                    <td>{getMaterialsValue(ticket)}</td>
                     <td>{ticket.title}</td>
+                    <td>{ticket.siteName || '—'}</td>
+                    <td>{ticket.equipmentNumber || '—'}</td>
+                    <td>{getSourcingCountry(ticket)}</td>
+                    <td>{truncateText(ticket.description || '—', 60)}</td>
+                    <td>{new Date(ticket.updatedAt).toLocaleString()}</td>
+                    <td>{getEscalationValue(ticket)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -852,6 +1090,28 @@ function prettyStatus(status) {
     Resolved: 'Closed',
     Cancelled: 'Cancelled',
   }[status] || status
+}
+
+function getMaterialsValue(ticket) {
+  const description = ticket.description || ''
+  const materialsMatch = description.match(/Materials:\s*(.+?)(?:\n|$)/i)
+  if (materialsMatch) return materialsMatch[1].trim()
+
+  const materialTokens = description.match(/[A-Z0-9-]{6,}(?:\s+[xX]\s*\d+)?/g)
+  return materialTokens && materialTokens.length ? materialTokens.slice(0, 3).join(', ') : '—'
+}
+
+function getSourcingCountry(ticket) {
+  const description = ticket.description || ''
+  const warehouseMatch = description.match(/Sourcing warehouse:\s*([^\n]+)/i)
+  if (warehouseMatch) return warehouseMatch[1].trim() || '—'
+
+  return '—'
+}
+
+function getEscalationValue(ticket) {
+  const description = ticket.description || ''
+  return /escalat(?:e|ed|ion)/i.test(description) ? 'Yes' : 'No'
 }
 
 function prettyLabel(value) {
