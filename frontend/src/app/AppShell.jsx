@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { logout } from '../store/authSlice'
@@ -7,6 +8,7 @@ export function AppShell({ children }) {
   const user = useSelector((state) => state.auth.user)
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
   const userInitials = user?.name?.split(' ').map((name) => name[0]).join('').toUpperCase() || 'U'
 
   const handleLogout = () => {
@@ -15,7 +17,7 @@ export function AppShell({ children }) {
   }
 
   return (
-    <div className="shell">
+    <div className={`shell${menuOpen ? ' menu-open' : ''}`}>
       <aside className="sidebar">
         <div className="brand">
           <div className="avatar">{userInitials}</div>
@@ -23,19 +25,49 @@ export function AppShell({ children }) {
             <div className="name">{user?.name || 'User'}</div>
             <div className="role">Service operations</div>
           </div>
+          <div className="mobile-menu-control">
+            <button
+              type="button"
+              className="mobile-menu-toggle"
+              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+
+            <div className="mobile-menu-panel">
+              <nav className="nav" aria-label="Requester navigation">
+                {requesterNavigation.map((item) => (
+                  <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'active' : '')}>
+                    {item.label}
+                    {item.label === 'Pending my reply' && <span className="badge">2</span>}
+                  </NavLink>
+                ))}
+              </nav>
+
+              <div className="nav-footer">
+                <button type="button" onClick={handleLogout} className="logout-button">Logout</button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <nav className="nav" aria-label="Requester navigation">
-          {requesterNavigation.map((item) => (
-            <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'active' : '')}>
-              {item.label}
-              {item.label === 'Pending my reply' && <span className="badge">2</span>}
-            </NavLink>
-          ))}
-        </nav>
+        <div className="desktop-navigation">
+          <nav className="nav" aria-label="Requester navigation">
+            {requesterNavigation.map((item) => (
+              <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'active' : '')}>
+                {item.label}
+                {item.label === 'Pending my reply' && <span className="badge">2</span>}
+              </NavLink>
+            ))}
+          </nav>
 
-        <div className="nav-footer">
-          <button type="button" onClick={handleLogout} className="logout-button">Logout</button>
+          <div className="nav-footer">
+            <button type="button" onClick={handleLogout} className="logout-button">Logout</button>
+          </div>
         </div>
       </aside>
 
