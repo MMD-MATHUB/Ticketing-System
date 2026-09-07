@@ -267,21 +267,99 @@ function DashboardPage() {
   )
 }
 
+function SearchableSelect({ value, onChange, options, placeholder, required = false }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef(null)
+  const selectedOption = options.find((option) => option.value === value)
+  const filteredOptions = options.filter((option) => option.label.toLowerCase().includes(query.toLowerCase()))
+
+  useEffect(() => {
+    const closeOnOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target)) setOpen(false)
+    }
+
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick)
+  }, [])
+
+  const selectOption = (option) => {
+    onChange(option.value)
+    setQuery('')
+    setOpen(false)
+  }
+
+  return (
+    <div className={`searchable-select${open ? ' open' : ''}`} ref={containerRef}>
+      <input
+        value={open ? query : selectedOption?.label || ''}
+        onChange={(event) => {
+          setQuery(event.target.value)
+          setOpen(true)
+        }}
+        onFocus={() => {
+          setQuery('')
+          setOpen(true)
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && filteredOptions[0]) {
+            event.preventDefault()
+            selectOption(filteredOptions[0])
+          }
+        }}
+        placeholder={placeholder}
+        role="combobox"
+        aria-expanded={open}
+        aria-autocomplete="list"
+        required={required && !value}
+      />
+      <span className="searchable-select-arrow" aria-hidden="true" />
+      {open && <div className="searchable-select-options" role="listbox">{filteredOptions.length ? filteredOptions.map((option) => <button type="button" role="option" aria-selected={option.value === value} key={option.value} onMouseDown={(event) => event.preventDefault()} onClick={() => selectOption(option)}>{option.label}</button>) : <div className="searchable-select-empty">No matches found</div>}</div>}
+    </div>
+  )
+}
+
 function NewTicketPage() {
   const [plants, setPlants] = useState([])
+  const [step, setStep] = useState(1)
+  const [isEditingReview, setIsEditingReview] = useState(false)
+  const [showRequesterDialog, setShowRequesterDialog] = useState(false)
+  const [showMaterialsDialog, setShowMaterialsDialog] = useState(false)
+  const [selectedRequesters, setSelectedRequesters] = useState([])
+  const [requesterSelection, setRequesterSelection] = useState('')
+  const [materialInput, setMaterialInput] = useState('')
+  const [materials, setMaterials] = useState([])
+  const [description, setDescription] = useState('')
+  const [attachments, setAttachments] = useState([])
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const user = useSelector((state) => state.auth.user)
   const navigate = useNavigate()
   const [form, setForm] = useState({
-    title: '',
-    ticketType: 'Activation',
-    description: '',
-    requesterName: 'Diana Stratan',
-    requesterEmail: 'diana.stratan@company.com',
+    plantCode: '',
+    sourcingWarehouse: '',
+    requestType: 'Activation',
+    reason: '',
+    raisingForAnotherCustomer: 'No',
+    customer: '',
     siteName: '',
     equipmentNumber: '',
-    priority: 'High',
-    plantCode: '20S1',
   })
+
+  const sourcingWarehouses = ['Hamburg Warehouse', 'Rotterdam Warehouse', 'Singapore Warehouse']
+  const sites = ['Site A', 'Site B', 'Site C', 'Windfarm North', 'Windfarm South']
+  const platforms = ['Platform 1001', 'Platform 1002', 'Platform 2001', 'Platform 2002']
+  const companyUsers = [
+    { name: 'Jane Anderson', email: 'jane.anderson@company.com' },
+    { name: 'Michael Bauer', email: 'michael.bauer@company.com' },
+    { name: 'Sofia Popescu', email: 'sofia.popescu@company.com' },
+  ]
+  const plantOptions = plants.map((plant) => ({ value: plant.code, label: plant.name }))
+  const warehouseOptions = sourcingWarehouses.map((warehouse) => ({ value: warehouse, label: warehouse }))
+  const requestTypeOptions = ['Activation', 'Activation - RETROFIT', 'Extension', 'Error'].map((type) => ({ value: type, label: type }))
+  const reasonOptions = ['Stand Still Turbine', 'Purchase Order Pending', 'Safety issue found during safety inspection'].map((reason) => ({ value: reason, label: reason }))
+  const siteOptions = sites.map((site) => ({ value: site, label: site }))
+  const platformOptions = platforms.map((platform) => ({ value: platform, label: platform }))
 
   useEffect(() => {
     apiClient.get(`${API_BASE_URL}/tickets/plants`)
@@ -290,76 +368,180 @@ function NewTicketPage() {
       .catch(() => setPlants([]))
   }, [])
 
+  const updateForm = (key, value) => setForm((current) => ({ ...current, [key]: value }))
+
+  const isStepOneComplete = Boolean(
+    form.plantCode &&
+    form.sourcingWarehouse &&
+    form.requestType &&
+    form.reason &&
+    form.raisingForAnotherCustomer &&
+    (form.raisingForAnotherCustomer === 'No' || form.customer.trim()) &&
+    form.siteName &&
+    form.equipmentNumber,
+  )
+
+  const addRequester = () => {
+    if (!requesterSelection || selectedRequesters.includes(requesterSelection)) return
+    setSelectedRequesters((current) => [...current, requesterSelection])
+    setRequesterSelection('')
+    setShowRequesterDialog(false)
+  }
+
+  const addMaterials = () => {
+    const parsed = materialInput
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const columns = line.split(/\s+/)
+        return { materialNumber: columns[0], quantity: columns[1] || '1' }
+      })
+      .slice(0, 50)
+
+    setMaterials(parsed)
+    setShowMaterialsDialog(false)
+    setMaterialInput('')
+  }
+
+  const removeMaterial = (materialNumber) => {
+    setMaterials((current) => current.filter((material) => material.materialNumber !== materialNumber))
+  }
+
   const submit = async (event) => {
     event.preventDefault()
+    if (step === 1) {
+      if (isEditingReview) {
+        setStep(4)
+        setIsEditingReview(false)
+      } else {
+        setStep(2)
+      }
+      return
+    }
+
+    if (step === 2) {
+      if (materials.length) {
+        if (isEditingReview) {
+          setStep(4)
+          setIsEditingReview(false)
+        } else {
+          setStep(3)
+        }
+      }
+      return
+    }
+
+    if (step === 3) {
+      if (description.trim()) {
+        setStep(4)
+        setIsEditingReview(false)
+      }
+      return
+    }
+
+    if (!materials.length || !description.trim()) return
+
     setSubmitting(true)
+    setSubmitError('')
 
     try {
-      const response = await apiClient.post(`${API_BASE_URL}/tickets`, { ...form, plantCode: form.plantCode })
+      const requester = user?.name || 'Demo User'
+      const requesterEmail = user?.email || 'demo.user@company.com'
+      const description = [
+        `Reason: ${form.reason}`,
+        `Sourcing warehouse: ${form.sourcingWarehouse}`,
+        `Customer: ${form.raisingForAnotherCustomer === 'Yes' ? form.customer : 'Current customer'}`,
+        description.trim(),
+        attachments.length ? `Attachments: ${attachments.map((file) => file.name).join(', ')}` : '',
+        `Materials: ${materials.map((material) => `${material.materialNumber} x ${material.quantity}`).join(', ')}`,
+        selectedRequesters.length ? `Additional requester: ${selectedRequesters.join(', ')}` : '',
+      ].filter(Boolean).join('\n')
+      const response = await apiClient.post(`${API_BASE_URL}/tickets`, {
+        title: form.reason,
+        ticketType: form.requestType,
+        description,
+        requesterName: requester,
+        requesterEmail,
+        siteName: form.siteName,
+        equipmentNumber: form.equipmentNumber,
+        priority: 'High',
+        plantCode: form.plantCode,
+      })
       const created = response.data
       navigate(`/tickets/${created.ticketNumber}`)
     } catch (error) {
-      console.error(error)
+      setSubmitError(error.response?.data?.message || 'Unable to create this ticket. Please try again.')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <section className="page form-page">
+    <section className="page form-page new-ticket-page">
       <header className="page-header compact">
         <div>
           <div className="eyebrow">New ticket</div>
-          <h1>Create a new maintenance ticket</h1>
+          <h1>Create ticket {step === 1 ? 'details' : 'materials'} | Step {step}</h1>
         </div>
       </header>
 
-      <form className="panel form-card" onSubmit={submit}>
-        <div className="form-grid">
-          <label>
-            <span>Plant *</span>
-            <select value={form.plantCode} onChange={(e) => setForm({ ...form, plantCode: e.target.value })}>
-              {plants.map((plant) => (
-                <option key={plant.id} value={plant.code}>{plant.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Priority *</span>
-            <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-              <option value="Critical">Critical</option>
-            </select>
-          </label>
-          <label className="full-width">
-            <span>Reason *</span>
-            <select value={form.ticketType} onChange={(e) => setForm({ ...form, ticketType: e.target.value })}>
-              <option value="Activation">Activation</option>
-              <option value="Material request">Material request</option>
-              <option value="Additional requester">Additional requester</option>
-              <option value="Downgrading">Downgrading</option>
-            </select>
-          </label>
-          <label>
-            <span>Site / Base / Location name</span>
-            <input value={form.siteName} onChange={(e) => setForm({ ...form, siteName: e.target.value })} placeholder="Enter site or location name" />
-          </label>
-          <label>
-            <span>Platform / Equipment number</span>
-            <input value={form.equipmentNumber} onChange={(e) => setForm({ ...form, equipmentNumber: e.target.value })} placeholder="Enter platform or equipment number" />
-          </label>
-          <label className="full-width">
-            <span>Description *</span>
-            <textarea rows="5" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Describe the issue or request" required />
-          </label>
-        </div>
+      <ol className="wizard-steps" aria-label="Ticket creation progress">
+        {['Add details', 'Add materials', 'Add description', 'Review & Submit'].map((label, index) => (
+          <li key={label} className={step === index + 1 ? 'active' : step > index + 1 ? 'complete' : ''}>
+            <span className="wizard-step-circle">{step > index + 1 ? '✓' : index + 1}</span>
+            <span className="wizard-step-label">{label}</span>
+          </li>
+        ))}
+      </ol>
 
-        <div className="form-actions">
-          <button type="submit" className="primary-button" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit'}</button>
-        </div>
+      <form className="panel form-card ticket-wizard" onSubmit={submit}>
+        {step === 1 ? (
+          <div className="form-grid">
+            <label><span>Plant *</span><SearchableSelect value={form.plantCode} onChange={(value) => updateForm('plantCode', value)} options={plantOptions} placeholder="Search plants" required /></label>
+            <label><span>Sourcing Warehouse *</span><SearchableSelect value={form.sourcingWarehouse} onChange={(value) => updateForm('sourcingWarehouse', value)} options={warehouseOptions} placeholder="Search warehouses" required /></label>
+            <label><span>Request type *</span><SearchableSelect value={form.requestType} onChange={(value) => updateForm('requestType', value)} options={requestTypeOptions} placeholder="Search request types" required /></label>
+            <label><span>Reason *</span><SearchableSelect value={form.reason} onChange={(value) => updateForm('reason', value)} options={reasonOptions} placeholder="Search reasons" required /></label>
+            <label><span>Site / Base / Windfarm name *</span><SearchableSelect value={form.siteName} onChange={(value) => updateForm('siteName', value)} options={siteOptions} placeholder="Search sites" required /></label>
+            <label><span>Platform / Turbine number *</span><SearchableSelect value={form.equipmentNumber} onChange={(value) => updateForm('equipmentNumber', value)} options={platformOptions} placeholder="Search platforms" required /></label>
+            <label><span>Are you raising the ticket for another customer? *</span><select value={form.raisingForAnotherCustomer} onChange={(event) => updateForm('raisingForAnotherCustomer', event.target.value)} required><option>No</option><option>Yes</option></select></label>
+            {form.raisingForAnotherCustomer === 'Yes' && <label><span>Please specify the customer name/email *</span><input value={form.customer} onChange={(event) => updateForm('customer', event.target.value)} required /></label>}
+            <div className="full-width requester-field"><div className="field-label">Additional requester <span className="optional-label">(optional)</span></div><button type="button" className="secondary-button" onClick={() => setShowRequesterDialog(true)}>Add</button>{selectedRequesters.length > 0 && <div className="selected-requester">{selectedRequesters.join(', ')}</div>}</div>
+          </div>
+        ) : step === 2 ? (
+          <div className="materials-step">
+            <div className="materials-toolbar"><button type="button" className="primary-button" onClick={() => setShowMaterialsDialog(true)}>Add Materials</button>{materials.length > 0 && <button type="button" className="secondary-button" onClick={() => setMaterials([])}>Clear all</button>}</div>
+            <div className="materials-table-wrap"><table className="materials-table"><thead><tr><th>No.</th><th>Material number</th><th>Quantity</th><th>Action</th></tr></thead><tbody>{materials.map((material, index) => <tr key={`${material.materialNumber}-${index}`}><td>{index + 1}.</td><td>{material.materialNumber}</td><td>{material.quantity}</td><td><button type="button" className="table-action" onClick={() => removeMaterial(material.materialNumber)} aria-label={`Remove ${material.materialNumber}`}>Remove</button></td></tr>)}{materials.length === 0 && <tr><td colSpan="4" className="materials-empty">No materials added yet.</td></tr>}</tbody></table></div>
+            <p className="materials-hint">Add up to 50 materials. Enter one material number and quantity per line.</p>
+          </div>
+        ) : step === 3 ? (
+          <div className="description-step">
+            <label className="full-width"><span>Describe the request *</span><textarea rows="8" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the issue or request" required /></label>
+            <div className="attachments-field">
+              <div className="field-label">Attachments</div>
+              <p className="attachments-empty">{attachments.length ? `${attachments.length} file${attachments.length === 1 ? '' : 's'} attached.` : 'There is nothing attached.'}</p>
+              <label className="attachment-upload"><span>Attach file</span><input type="file" multiple onChange={(event) => setAttachments((current) => [...current, ...Array.from(event.target.files || [])])} /></label>
+              {attachments.length > 0 && <ul className="attachment-list">{attachments.map((file, index) => <li key={`${file.name}-${index}`}><span>{file.name}</span><button type="button" onClick={() => setAttachments((current) => current.filter((_, fileIndex) => fileIndex !== index))}>Remove</button></li>)}</ul>}
+            </div>
+          </div>
+        ) : (
+          <div className="review-step">
+            <div className="review-summary"><div><span className="review-summary-kicker">Final review</span><p>Check the information below before submitting your ticket.</p></div></div>
+            <section className="review-section">
+              <div className="review-section-heading"><div><span className="review-section-step">Step 1</span><h2>Add details</h2></div><button type="button" className="review-edit-button" onClick={() => { setIsEditingReview(true); setStep(1) }}>Edit</button></div>
+              <div className="review-grid"><div><span>Plant</span><strong>{plantOptions.find((option) => option.value === form.plantCode)?.label || 'Not selected'}</strong></div><div><span>Sourcing warehouse</span><strong>{form.sourcingWarehouse}</strong></div><div><span>Request type</span><strong>{form.requestType}</strong></div><div><span>Reason</span><strong>{form.reason}</strong></div><div><span>Site / Base / Windfarm</span><strong>{form.siteName}</strong></div><div><span>Platform / Turbine</span><strong>{form.equipmentNumber}</strong></div><div><span>Another customer</span><strong>{form.raisingForAnotherCustomer}</strong></div>{form.raisingForAnotherCustomer === 'Yes' && <div><span>Customer</span><strong>{form.customer}</strong></div>}<div><span>Additional requesters</span><strong>{selectedRequesters.length ? selectedRequesters.join(', ') : 'None'}</strong></div></div>
+            </section>
+            <section className="review-section"><div className="review-section-heading"><div><span className="review-section-step">Step 2</span><h2>Add materials <span className="review-count">{materials.length}</span></h2></div><button type="button" className="review-edit-button" onClick={() => { setIsEditingReview(true); setStep(2) }}>Edit</button></div><div className="review-material-list">{materials.map((material, index) => <div key={`${material.materialNumber}-${index}`}><span>{index + 1}. {material.materialNumber}</span><strong>{material.quantity} {Number(material.quantity) === 1 ? 'unit' : 'units'}</strong></div>)}</div></section>
+            <section className="review-section"><div className="review-section-heading"><div><span className="review-section-step">Step 3</span><h2>Description &amp; attachments</h2></div><button type="button" className="review-edit-button" onClick={() => { setIsEditingReview(true); setStep(3) }}>Edit</button></div><div className="review-content-columns"><div><span className="review-field-label">Description</span><p className="review-description">{description}</p></div><div><span className="review-field-label">Attachments <span className="review-count">{attachments.length}</span></span><div className="review-attachment-list">{attachments.length ? attachments.map((file) => <span key={file.name}>{file.name}</span>) : <span className="review-muted">No attachments</span>}</div></div></div></section>
+          </div>
+        )}
+
+        {submitError && <div className="form-error" role="alert">{submitError}</div>}
+        <div className={`wizard-actions${step === 1 ? ' first-step' : ''}`}>{step > 1 && <button type="button" className="secondary-button" onClick={() => setStep((current) => current - 1)}>Previous</button>}<button type="submit" className="primary-button" disabled={step === 1 ? !isStepOneComplete : step === 2 ? !materials.length : step === 3 ? !description.trim() : submitting}>{submitting ? 'Creating…' : step === 4 ? 'Create ticket' : isEditingReview ? 'Go to submission' : 'Next'}</button></div>
       </form>
+
+      {showRequesterDialog && <div className="modal-backdrop" onClick={() => setShowRequesterDialog(false)}><div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="requester-dialog-title" onClick={(event) => event.stopPropagation()}><button type="button" className="modal-close" onClick={() => setShowRequesterDialog(false)} aria-label="Close">×</button><h2 id="requester-dialog-title">Add additional requester</h2><label><span>Company user</span><SearchableSelect value={requesterSelection} onChange={setRequesterSelection} options={companyUsers.filter((companyUser) => !selectedRequesters.some((requester) => requester.startsWith(companyUser.name))).map((companyUser) => ({ value: `${companyUser.name} (${companyUser.email})`, label: `${companyUser.name} | ${companyUser.email}` }))} placeholder="Search company users" /></label><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowRequesterDialog(false)}>Cancel</button><button type="button" className="primary-button" disabled={!requesterSelection} onClick={addRequester}>Confirm</button></div></div></div>}
+      {showMaterialsDialog && <div className="modal-backdrop" onClick={() => setShowMaterialsDialog(false)}><div className="modal-card materials-dialog" role="dialog" aria-modal="true" aria-labelledby="materials-dialog-title" onClick={(event) => event.stopPropagation()}><button type="button" className="modal-close" onClick={() => setShowMaterialsDialog(false)} aria-label="Close">×</button><h2 id="materials-dialog-title">Add Materials bulk</h2><p>Paste one material number and quantity per line.</p><textarea rows="8" value={materialInput} onChange={(event) => setMaterialInput(event.target.value)} placeholder={'A9B12312313 10\nA9B12312324 20'} autoFocus /><p className="materials-warning">* Please make sure to not add more than 50 materials in one ticket.</p><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowMaterialsDialog(false)}>Cancel</button><button type="button" className="primary-button" disabled={!materialInput.trim()} onClick={addMaterials}>Confirm</button></div></div></div>}
     </section>
   )
 }
