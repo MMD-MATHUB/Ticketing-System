@@ -44,6 +44,7 @@ function App() {
 }
 
 function DashboardPage() {
+  const user = useSelector((state) => state.auth.user)
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -53,6 +54,9 @@ function DashboardPage() {
   const searchErrorCloseRef = useRef(null)
   const refreshTimerRef = useRef(null)
   const navigate = useNavigate()
+  const currentHour = new Date().getHours()
+  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 16 ? 'Good day' : 'Good evening'
+  const userName = user?.name || 'User'
 
   const searchTicket = async (event) => {
     event.preventDefault()
@@ -140,7 +144,7 @@ function DashboardPage() {
       <header className="page-header dashboard-header">
         <div>
           <div className="eyebrow">Dashboard</div>
-          <h1>Good evening, Diana</h1>
+          <h1>{greeting}, {userName}</h1>
           <p className="dashboard-intro">Here's your ticket overview and the items that need attention.</p>
         </div>
         <button
@@ -195,25 +199,29 @@ function DashboardPage() {
           <section className="panel dashboard-panel">
             <div className="panel-title">Open tickets by priority</div>
             <div className="panel-subtitle">Where your open work is concentrated</div>
-            {dashboard.openByPriority.map((item) => (
-              <div key={item.label} className="bar-row">
-                <span className="label">{prettyLabel(item.label)}</span>
-                <div className="bar"><div className="fill priority" style={{ width: `${Math.max((item.count / Math.max(...dashboard.openByPriority.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div>
-                <strong>{item.count}</strong>
-              </div>
-            ))}
+            <div className="dashboard-insight-list">
+              {dashboard.openByPriority.map((item) => (
+                <div key={item.label} className="bar-row">
+                  <span className="label">{prettyLabel(item.label)}</span>
+                  <div className="bar"><div className="fill priority" style={{ width: `${Math.max((item.count / Math.max(...dashboard.openByPriority.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div>
+                  <strong>{item.count}</strong>
+                </div>
+              ))}
+            </div>
           </section>
 
           <section className="panel dashboard-panel">
             <div className="panel-title">Open tickets by plant</div>
             <div className="panel-subtitle">Requests grouped by location</div>
-            {dashboard.openByPlant.map((item) => (
-              <div key={item.label} className="bar-row plant-row">
-                <div className="plant-label"><span className="accent" /><span className="text">{item.label}</span></div>
-                <div className="bar"><div className="fill plant" style={{ width: `${Math.max((item.count / Math.max(...dashboard.openByPlant.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div>
-                <strong className="plant-count">{item.count}</strong>
-              </div>
-            ))}
+            <div className="dashboard-insight-list">
+              {dashboard.openByPlant.map((item) => (
+                <div key={item.label} className="bar-row plant-row">
+                  <div className="plant-label"><span className="accent" /><span className="text">{item.label}</span></div>
+                  <div className="bar"><div className="fill plant" style={{ width: `${Math.max((item.count / Math.max(...dashboard.openByPlant.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div>
+                  <strong className="plant-count">{item.count}</strong>
+                </div>
+              ))}
+            </div>
           </section>
         </div>
       </div>
