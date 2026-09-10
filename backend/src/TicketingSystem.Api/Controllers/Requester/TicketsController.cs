@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using FluentValidation;
 using TicketingSystem.Application.DTOs;
 using TicketingSystem.Application.Services;
+using TicketingSystem.Api.LiveUpdates;
 
 namespace TicketingSystem.Api.Controllers.Requester;
 
@@ -14,15 +15,18 @@ public class TicketsController : ControllerBase
     private readonly TicketService _ticketService;
     private readonly IValidator<CreateTicketRequest> _createTicketValidator;
     private readonly IValidator<AddCommentRequest> _commentValidator;
+    private readonly TicketUpdateBroadcaster _ticketUpdateBroadcaster;
 
     public TicketsController(
         TicketService ticketService,
         IValidator<CreateTicketRequest> createTicketValidator,
-        IValidator<AddCommentRequest> commentValidator)
+        IValidator<AddCommentRequest> commentValidator,
+        TicketUpdateBroadcaster ticketUpdateBroadcaster)
     {
         _ticketService = ticketService;
         _createTicketValidator = createTicketValidator;
         _commentValidator = commentValidator;
+        _ticketUpdateBroadcaster = ticketUpdateBroadcaster;
     }
 
     [HttpGet]
@@ -86,6 +90,7 @@ public class TicketsController : ControllerBase
         try
         {
             var ticket = await _ticketService.CreateTicketAsync(request);
+            _ticketUpdateBroadcaster.Publish("tickets-changed");
             return CreatedAtAction(nameof(GetTicket), new { ticketNumber = ticket.TicketNumber }, ticket);
         }
         catch (InvalidOperationException ex)
@@ -106,6 +111,7 @@ public class TicketsController : ControllerBase
         try
         {
             var ticket = await _ticketService.AddCommentAsync(ticketNumber, request.Role, request.Message);
+            _ticketUpdateBroadcaster.Publish("tickets-changed");
             return Ok(ticket);
         }
         catch (InvalidOperationException ex)

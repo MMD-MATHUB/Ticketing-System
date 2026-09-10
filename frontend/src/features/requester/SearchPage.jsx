@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import apiClient from '../../api/apiClient'
 import { SearchableSelect } from './SearchableSelect'
+import { subscribeToLiveUpdates } from '../../shared/liveUpdates'
 import {
   API_BASE_URL,
   getEscalationValue,
@@ -24,7 +25,7 @@ export function SearchPage() {
       .catch(() => setPlants([]))
   }, [])
 
-  useEffect(() => {
+  const loadTickets = useCallback(() => {
     apiClient.get(`${API_BASE_URL}/tickets`)
       .then((response) => response.data)
       .then((data) => {
@@ -37,7 +38,7 @@ export function SearchPage() {
       })
   }, [])
 
-  useEffect(() => {
+  const loadResults = useCallback(() => {
     const query = new URLSearchParams()
     Object.entries(filters).forEach(([key, value]) => {
       if (value) query.append(key, value)
@@ -48,6 +49,15 @@ export function SearchPage() {
       .then((data) => setResults(data))
       .catch(() => setResults([]))
   }, [filters])
+
+  useEffect(() => {
+    loadTickets()
+    return subscribeToLiveUpdates(loadResults)
+  }, [loadTickets, loadResults])
+
+  useEffect(() => {
+    loadResults()
+  }, [loadResults])
 
   const updateFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }))
 

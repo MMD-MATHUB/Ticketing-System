@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import apiClient from '../../api/apiClient'
 import { SearchableSelect } from './SearchableSelect'
+import { subscribeToLiveUpdates } from '../../shared/liveUpdates'
 import {
   API_BASE_URL,
   getEscalationValue,
@@ -17,9 +18,8 @@ export function TicketListPage({ title, subtitle, view, tabs }) {
   const [ticketFilter, setTicketFilter] = useState('')
   const [materialFilter, setMaterialFilter] = useState('')
   const [activeTab, setActiveTab] = useState(tabs?.[0]?.key ?? null)
-  const [refreshIndex, setRefreshIndex] = useState(0)
 
-  useEffect(() => {
+  const loadTickets = useCallback(() => {
     let active = true
 
     apiClient.get(`${API_BASE_URL}/tickets?view=${view}`)
@@ -32,7 +32,12 @@ export function TicketListPage({ title, subtitle, view, tabs }) {
       })
 
     return () => { active = false }
-  }, [view, refreshIndex])
+  }, [view])
+
+  useEffect(() => {
+    loadTickets()
+    return subscribeToLiveUpdates(loadTickets)
+  }, [loadTickets])
 
   const activeTabConfig = tabs?.find((tab) => tab.key === activeTab)
   const tabTickets = activeTabConfig ? tickets.filter((ticket) => activeTabConfig.statuses.includes(ticket.status)) : tickets
@@ -86,7 +91,6 @@ export function TicketListPage({ title, subtitle, view, tabs }) {
           </div>
           {subtitle && <p className="ticket-page-subtitle">{subtitle}</p>}
         </div>
-        {tabs && <button type="button" className="refresh-button" onClick={() => { setLoading(true); setRefreshIndex((current) => current + 1) }}>Refresh</button>}
       </header>
 
       <div className="panel table-card ticket-table-card">

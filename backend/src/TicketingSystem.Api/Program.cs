@@ -8,6 +8,7 @@ using TicketingSystem.Application.Processing;
 using TicketingSystem.Application.Services;
 using TicketingSystem.Infrastructure.Persistence;
 using TicketingSystem.Infrastructure.Repositories;
+using TicketingSystem.Api.LiveUpdates;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +23,19 @@ var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "TicketingSystemClien
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken) && context.HttpContext.Request.Path.StartsWithSegments("/api/events"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -81,6 +95,7 @@ builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<TicketService>();
 builder.Services.AddScoped<ProcessingService>();
 builder.Services.AddScoped<AnalysisService>();
+builder.Services.AddSingleton<TicketUpdateBroadcaster>();
 
 var app = builder.Build();
 
@@ -101,5 +116,28 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/api/events", async (HttpContext context, TicketUpdateBroadcaster broadcaster) =>
+{
+    context.Response.ContentType = "text/event-stream";
+    context.Response.Headers.CacheControl = "no-cache";
+    context.Response.Headers.Connection = "keep-alive";
+
+    var subscription = broadcaster.Subscribe();
+    try
+    {
+        await foreach (var eventName in subscription.Reader.ReadAllAsync(context.RequestAborted))
+        {
+            await context.Response.WriteAsync($"event: {eventName}\ndata: {{}}\n\n", context.RequestAborted);
+            await context.Response.Body.FlushAsync(context.RequestAborted);
+        }
+    }
+    catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+    {
+    }
+    finally
+    {
+        broadcaster.Unsubscribe(subscription.Id);
+    }
+}).RequireAuthorization();
 
 app.Run();

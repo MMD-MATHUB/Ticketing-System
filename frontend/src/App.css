@@ -233,7 +233,6 @@
   max-width: 780px;
 }
 
-.refresh-button,
 .primary-button {
   border: 0;
   background: #584cb9;
@@ -244,7 +243,6 @@
   cursor: pointer;
 }
 
-.refresh-button.small,
 .primary-button.small {
   padding: 10px 14px;
   font-size: 0.9rem;
@@ -430,17 +428,6 @@
   margin: 6px 0 0;
   color: #707084;
   font-size: clamp(13px, 0.8vw, 16px);
-}
-
-.dashboard-refresh {
-  align-self: center;
-  padding: 8px 12px;
-  font-size: 13px;
-  flex: none;
-}
-
-.dashboard-refresh.refreshed {
-  background: #16a34a;
 }
 
 .dashboard-tools {
@@ -2432,12 +2419,6 @@ tbody tr:hover {
   .dashboard-header {
     position: relative;
     display: block;
-  }
-
-  .dashboard-refresh {
-    position: absolute;
-    top: 0;
-    right: 0;
   }
 
   .dashboard-search {

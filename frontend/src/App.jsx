@@ -14,6 +14,7 @@ import { StyleReferencePage } from './features/shared/StyleReferencePage'
 import { CLOSED_CANCELLED_TABS, prettyStatus } from './features/requester/ticketUtils'
 import { AppShell } from './app/AppShell'
 import apiClient from './api/apiClient'
+import { subscribeToLiveUpdates } from './shared/liveUpdates'
 import './App.css'
 
 const API_BASE_URL = '/api'
@@ -58,9 +59,7 @@ function DashboardPage() {
   const [error, setError] = useState('')
   const [ticketSearch, setTicketSearch] = useState('')
   const [searchError, setSearchError] = useState('')
-  const [isRefreshed, setIsRefreshed] = useState(false)
   const searchErrorCloseRef = useRef(null)
-  const refreshTimerRef = useRef(null)
   const navigate = useNavigate()
   const currentHour = new Date().getHours()
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 16 ? 'Good day' : 'Good evening'
@@ -104,7 +103,7 @@ function DashboardPage() {
         setError('')
       })
       .catch(() => {
-        setError('Cannot connect to the backend on http://localhost:8080. Start the API and refresh this page.')
+        setError('Cannot connect to the backend on http://localhost:8080. Start the API.')
       })
       .finally(() => {
         setLoading(false)
@@ -113,19 +112,8 @@ function DashboardPage() {
 
   useEffect(() => {
     loadDashboard()
-
-    return () => {
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
-    }
+    return subscribeToLiveUpdates(loadDashboard)
   }, [loadDashboard])
-
-  const refreshDashboard = () => {
-    loadDashboard()
-    setIsRefreshed(true)
-
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
-    refreshTimerRef.current = setTimeout(() => setIsRefreshed(false), 5000)
-  }
 
   const cards = useMemo(() => {
     if (!dashboard?.stats) return []
@@ -155,13 +143,6 @@ function DashboardPage() {
           <h1>{greeting}, {userName}</h1>
           <p className="dashboard-intro">Here's your ticket overview and the items that need attention.</p>
         </div>
-        <button
-          type="button"
-          className={`refresh-button dashboard-refresh${isRefreshed ? ' refreshed' : ''}`}
-          onClick={refreshDashboard}
-        >
-          {isRefreshed ? 'Refreshed!' : 'Refresh'}
-        </button>
       </header>
 
       <div className="dashboard-tools">
@@ -502,6 +483,205 @@ function NewTicketPage() {
   )
 }
 
+function LegacyTicketListPage({ title, view }) {
+  const [tickets, setTickets] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [plantFilter, setPlantFilter] = useState('')
+  const [ticketFilter, setTicketFilter] = useState('')
+  const [materialFilter, setMaterialFilter] = useState('')
+
+  const loadTickets = useCallback(() => {
+    let active = true
+
+    apiClient.get(`${API_BASE_URL}/tickets?view=${view}`)
+      .then((response) => response.data)
+      .then((data) => {
+        if (active) setTickets(data)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => { active = false }
+  }, [view])
+
+  useEffect(() => {
+    const stopListening = subscribeToLiveUpdates(loadTickets)
+    loadTickets()
+    return stopListening
+  }, [loadTickets])
+
+  const visible = tickets.filter((ticket) => {
+    const plantMatch = !plantFilter || ticket.plantName === plantFilter
+    const ticketMatch = !ticketFilter || ticket.ticketNumber === ticketFilter
+    const materialMatch = !materialFilter || ticket.title.toLowerCase().includes(materialFilter.toLowerCase())
+    return plantMatch && ticketMatch && materialMatch
+  })
+
+  const plants = [...new Set(tickets.map((ticket) => ticket.plantName).filter(Boolean))]
+
+  if (loading) {
+    return <section className="page"><div className="panel state-panel">Loading tickets...</div></section>
+  }
+
+  return (
+    <section className="page">
+      <header className="page-header compact">
+        <div>
+          <div className="eyebrow">Tickets</div>
+          <h1>{title}</h1>
+        </div>
+      </header>
+
+      <div className="panel table-card">
+        <div className="filters">
+          <select value={plantFilter} onChange={(e) => setPlantFilter(e.target.value)}>
+            <option value="">Search by plant</option>
+            {plants.map((plant) => <option key={plant} value={plant}>{plant}</option>)}
+          </select>
+          <select value={ticketFilter} onChange={(e) => setTicketFilter(e.target.value)}>
+            <option value="">Search by ticket</option>
+            {tickets.map((ticket) => <option key={ticket.ticketNumber} value={ticket.ticketNumber}>{ticket.ticketNumber}</option>)}
+          </select>
+          <input value={materialFilter} onChange={(e) => setMaterialFilter(e.target.value)} placeholder="Type material..." />
+        </div>
+
+        <div className="table-wrap">
+          {visible.length ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>Ticket</th>
+                  <th>Created on</th>
+                  <th>Ticket Type</th>
+                  <th>Plant</th>
+                  <th>Status</th>
+                  <th>Title</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((ticket) => (
+                  <tr key={ticket.ticketNumber} onClick={() => window.location.href = `/tickets/${ticket.ticketNumber}`}>
+                    <td>{ticket.ticketNumber}</td>
+                    <td>{new Date(ticket.createdAt).toLocaleString()}</td>
+                    <td>{ticket.ticketType}</td>
+                    <td>{ticket.plantName}</td>
+                    <td>{prettyStatus(ticket.status)}</td>
+                    <td>{ticket.title}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="empty">No tickets found.</div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function LegacySearchPage() {
+  const [plants, setPlants] = useState([])
+  const [results, setResults] = useState([])
+  const [filters, setFilters] = useState({ ticket: '', ticketType: '', plant: '', ticketStatus: '', requester: '' })
+
+  const loadPlants = useCallback(() => {
+    apiClient.get(`${API_BASE_URL}/tickets/plants`)
+      .then((response) => response.data)
+      .then((data) => setPlants(data))
+      .catch(() => setPlants([]))
+  }, [])
+
+  const loadResults = useCallback(() => {
+    const query = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) query.append(key, value)
+    })
+
+    apiClient.get(`${API_BASE_URL}/tickets/search?${query.toString()}`)
+      .then((response) => response.data)
+      .then((data) => setResults(data))
+      .catch(() => setResults([]))
+  }, [filters])
+
+  useEffect(() => {
+    loadPlants()
+    return subscribeToLiveUpdates(loadResults)
+  }, [loadPlants, loadResults])
+
+  useEffect(() => {
+    loadResults()
+  }, [loadResults])
+
+  const updateFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }))
+
+  return (
+    <section className="page">
+      <header className="page-header compact">
+        <div>
+          <div className="eyebrow">Search tickets</div>
+          <h1>Search tickets</h1>
+        </div>
+      </header>
+
+      <div className="filter-grid">
+        <label><span>Ticket</span><input value={filters.ticket} onChange={(e) => updateFilter('ticket', e.target.value)} /></label>
+        <label><span>Ticket Type</span><select value={filters.ticketType} onChange={(e) => updateFilter('ticketType', e.target.value)}>
+          <option value="">All</option>
+          <option value="Activation">Activation</option>
+          <option value="Material request">Material request</option>
+          <option value="Additional requester">Additional requester</option>
+        </select></label>
+        <label><span>Plant</span><select value={filters.plant} onChange={(e) => updateFilter('plant', e.target.value)}>
+          <option value="">All</option>
+          {plants.map((plant) => <option key={plant.id} value={plant.name}>{plant.name}</option>)}
+        </select></label>
+        <label><span>Ticket Status</span><select value={filters.ticketStatus} onChange={(e) => updateFilter('ticketStatus', e.target.value)}>
+          <option value="">All</option>
+          <option value="NotStarted">Not started</option>
+          <option value="InProgress">In progress</option>
+          <option value="Resolved">Resolved</option>
+          <option value="Cancelled">Cancelled</option>
+        </select></label>
+        <label><span>Requester</span><input value={filters.requester} onChange={(e) => updateFilter('requester', e.target.value)} /></label>
+      </div>
+
+      <div className="panel table-card">
+        <div className="table-wrap">
+          {results.length ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>Ticket</th>
+                  <th>Created on</th>
+                  <th>Ticket Type</th>
+                  <th>Plant</th>
+                  <th>Status</th>
+                  <th>Title</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((ticket) => (
+                  <tr key={ticket.ticketNumber} onClick={() => window.location.href = `/tickets/${ticket.ticketNumber}`}>
+                    <td>{ticket.ticketNumber}</td>
+                    <td>{new Date(ticket.createdAt).toLocaleString()}</td>
+                    <td>{ticket.ticketType}</td>
+                    <td>{ticket.plantName}</td>
+                    <td>{prettyStatus(ticket.status)}</td>
+                    <td>{ticket.title}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="empty">No results found.</div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
 
 function TicketDetailPage() {
   const { ticketNumber } = useParams()
@@ -533,6 +713,7 @@ function TicketDetailPage() {
 
   useEffect(() => {
     load()
+    return subscribeToLiveUpdates(load)
   }, [load])
 
   useEffect(() => {
