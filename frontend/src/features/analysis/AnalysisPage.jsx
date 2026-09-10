@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react'
 import apiClient from '../../api/apiClient'
 import { applications } from '../../shared/applications/applicationCatalog'
+import { subscribeToLiveUpdates } from '../../shared/liveUpdates'
 
 export function AnalysisPage() {
   const application = applications.analysis
   const [overview, setOverview] = useState(null)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  const loadOverview = () => {
     apiClient.get('/api/analysis/overview')
       .then((response) => setOverview(response.data))
       .catch(() => setError('Unable to load analysis data.'))
+  }
+
+  useEffect(() => {
+    loadOverview()
+    return subscribeToLiveUpdates(loadOverview)
   }, [])
 
   return (

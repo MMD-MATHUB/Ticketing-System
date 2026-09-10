@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react'
 import apiClient from '../../api/apiClient'
 import { applications } from '../../shared/applications/applicationCatalog'
+import { subscribeToLiveUpdates } from '../../shared/liveUpdates'
 
 export function ProcessingPage() {
   const application = applications.processing
   const [queue, setQueue] = useState(null)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  const loadQueue = () => {
     apiClient.get('/api/processing/queue')
       .then((response) => setQueue(response.data))
       .catch(() => setError('Unable to load the processing queue.'))
+  }
+
+  useEffect(() => {
+    loadQueue()
+    return subscribeToLiveUpdates(loadQueue)
   }, [])
 
   return (

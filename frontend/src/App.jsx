@@ -8,6 +8,7 @@ import { ProcessingPage } from './features/processing/ProcessingPage'
 import { AnalysisPage } from './features/analysis/AnalysisPage'
 import { AppShell } from './app/AppShell'
 import apiClient from './api/apiClient'
+import { subscribeToLiveUpdates } from './shared/liveUpdates'
 import './App.css'
 
 const API_BASE_URL = '/api'
@@ -50,9 +51,7 @@ function DashboardPage() {
   const [error, setError] = useState('')
   const [ticketSearch, setTicketSearch] = useState('')
   const [searchError, setSearchError] = useState('')
-  const [isRefreshed, setIsRefreshed] = useState(false)
   const searchErrorCloseRef = useRef(null)
-  const refreshTimerRef = useRef(null)
   const navigate = useNavigate()
   const currentHour = new Date().getHours()
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 16 ? 'Good day' : 'Good evening'
@@ -96,7 +95,7 @@ function DashboardPage() {
         setError('')
       })
       .catch(() => {
-        setError('Cannot connect to the backend on http://localhost:8080. Start the API and refresh this page.')
+        setError('Cannot connect to the backend on http://localhost:8080. Start the API.')
       })
       .finally(() => {
         setLoading(false)
@@ -105,19 +104,8 @@ function DashboardPage() {
 
   useEffect(() => {
     loadDashboard()
-
-    return () => {
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
-    }
+    return subscribeToLiveUpdates(loadDashboard)
   }, [loadDashboard])
-
-  const refreshDashboard = () => {
-    loadDashboard()
-    setIsRefreshed(true)
-
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
-    refreshTimerRef.current = setTimeout(() => setIsRefreshed(false), 5000)
-  }
 
   const cards = useMemo(() => {
     if (!dashboard?.stats) return []
@@ -147,13 +135,6 @@ function DashboardPage() {
           <h1>{greeting}, {userName}</h1>
           <p className="dashboard-intro">Here's your ticket overview and the items that need attention.</p>
         </div>
-        <button
-          type="button"
-          className={`refresh-button dashboard-refresh${isRefreshed ? ' refreshed' : ''}`}
-          onClick={refreshDashboard}
-        >
-          {isRefreshed ? 'Refreshed!' : 'Refresh'}
-        </button>
       </header>
 
       <div className="dashboard-tools">
@@ -371,7 +352,7 @@ function TicketListPage({ title, view }) {
   const [ticketFilter, setTicketFilter] = useState('')
   const [materialFilter, setMaterialFilter] = useState('')
 
-  useEffect(() => {
+  const loadTickets = useCallback(() => {
     let active = true
 
     apiClient.get(`${API_BASE_URL}/tickets?view=${view}`)
@@ -385,6 +366,12 @@ function TicketListPage({ title, view }) {
 
     return () => { active = false }
   }, [view])
+
+  useEffect(() => {
+    const stopListening = subscribeToLiveUpdates(loadTickets)
+    loadTickets()
+    return stopListening
+  }, [loadTickets])
 
   const visible = tickets.filter((ticket) => {
     const plantMatch = !plantFilter || ticket.plantName === plantFilter
@@ -461,14 +448,14 @@ function SearchPage() {
   const [results, setResults] = useState([])
   const [filters, setFilters] = useState({ ticket: '', ticketType: '', plant: '', ticketStatus: '', requester: '' })
 
-  useEffect(() => {
+  const loadPlants = useCallback(() => {
     apiClient.get(`${API_BASE_URL}/tickets/plants`)
       .then((response) => response.data)
       .then((data) => setPlants(data))
       .catch(() => setPlants([]))
   }, [])
 
-  useEffect(() => {
+  const loadResults = useCallback(() => {
     const query = new URLSearchParams()
     Object.entries(filters).forEach(([key, value]) => {
       if (value) query.append(key, value)
@@ -479,6 +466,15 @@ function SearchPage() {
       .then((data) => setResults(data))
       .catch(() => setResults([]))
   }, [filters])
+
+  useEffect(() => {
+    loadPlants()
+    return subscribeToLiveUpdates(loadResults)
+  }, [loadPlants, loadResults])
+
+  useEffect(() => {
+    loadResults()
+  }, [loadResults])
 
   const updateFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }))
 
@@ -572,6 +568,7 @@ function TicketDetailPage() {
 
   useEffect(() => {
     load()
+    return subscribeToLiveUpdates(load)
   }, [load])
 
   const sendComment = async () => {
@@ -613,7 +610,6 @@ function TicketDetailPage() {
         <div className="left-cluster">
           <button type="button" className="back-button" onClick={() => navigate('/dashboard')}>‹</button>
           <h1>{ticket.ticketNumber}</h1>
-          <button type="button" className="refresh-button small" onClick={load}>Refresh</button>
         </div>
         <button type="button" className="primary-button small">Action</button>
       </div>
