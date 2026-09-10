@@ -10,6 +10,7 @@ import { TicketListPage } from './features/requester/TicketListPage'
 import { RecentTicketsPage } from './features/requester/RecentTicketsPage'
 import { SearchPage } from './features/requester/SearchPage'
 import { SearchableSelect } from './features/requester/SearchableSelect'
+import { StyleReferencePage } from './features/shared/StyleReferencePage'
 import { CLOSED_CANCELLED_TABS, prettyStatus } from './features/requester/ticketUtils'
 import { AppShell } from './app/AppShell'
 import apiClient from './api/apiClient'
@@ -37,6 +38,7 @@ function App() {
           <Route path="/choose-app" element={<ApplicationSelectionPage />} />
           <Route path="/processing" element={<ApplicationRoute applicationKey="processing"><ProcessingPage /></ApplicationRoute>} />
           <Route path="/analysis" element={<ApplicationRoute applicationKey="analysis"><AnalysisPage /></ApplicationRoute>} />
+          <Route path="/style-reference" element={<StyleReferencePage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/tickets/new" element={<NewTicketPage />} />
           <Route path="/tickets/not-started" element={<TicketListPage title="Not started tickets" subtitle="Tickets awaiting processing" view="not-started" />} />
