@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { logout } from '../store/authSlice'
 import { requesterNavigation } from '../features/requester/requesterNavigation'
 
@@ -8,13 +8,33 @@ export function AppShell({ children }) {
   const user = useSelector((state) => state.auth.user)
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
+  const mobileMenuRef = useRef(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const userInitials = user?.name?.split(' ').map((name) => name[0]).join('').toUpperCase() || 'U'
 
   const handleLogout = () => {
+    setMenuOpen(false)
     dispatch(logout())
     navigate('/login')
   }
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!menuOpen) return undefined
+
+    const closeMenuOnOutsideClick = (event) => {
+      if (!mobileMenuRef.current?.contains(event.target)) {
+        setMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', closeMenuOnOutsideClick)
+    return () => document.removeEventListener('mousedown', closeMenuOnOutsideClick)
+  }, [menuOpen])
 
   return (
     <div className={`shell${menuOpen ? ' menu-open' : ''}`}>
@@ -25,7 +45,7 @@ export function AppShell({ children }) {
             <div className="name">{user?.name || 'User'}</div>
             <div className="role">Service operations</div>
           </div>
-          <div className="mobile-menu-control">
+          <div className="mobile-menu-control" ref={mobileMenuRef}>
             <button
               type="button"
               className="mobile-menu-toggle"
@@ -41,7 +61,7 @@ export function AppShell({ children }) {
             <div className="mobile-menu-panel">
               <nav className="nav" aria-label="Requester navigation">
                 {requesterNavigation.map((item) => (
-                  <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <NavLink key={item.to} to={item.to} onClick={() => setMenuOpen(false)} className={({ isActive }) => (isActive ? 'active' : '')}>
                     {item.label}
                     {item.label === 'Pending my reply' && <span className="badge">2</span>}
                   </NavLink>

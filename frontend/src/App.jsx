@@ -504,15 +504,22 @@ function NewTicketPage() {
 function TicketDetailPage() {
   const { ticketNumber } = useParams()
   const navigate = useNavigate()
+  const actionMenuRef = useRef(null)
+  const timelineBoxRef = useRef(null)
   const [ticket, setTicket] = useState(null)
   const [comment, setComment] = useState('')
+  const [timelineComments, setTimelineComments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [actionMenuOpen, setActionMenuOpen] = useState(false)
 
   const load = useCallback(() => {
     apiClient.get(`${API_BASE_URL}/tickets/${ticketNumber}`)
       .then((response) => response.data)
-      .then((data) => setTicket(data))
+      .then((data) => {
+        setTicket(data)
+        setTimelineComments([{ author: 'Requester', message: data.description }])
+      })
       .catch((requestError) => {
         setTicket(null)
         setError(requestError.response?.status === 404
@@ -526,6 +533,35 @@ function TicketDetailPage() {
     load()
   }, [load])
 
+  useEffect(() => {
+    if (timelineBoxRef.current) {
+      timelineBoxRef.current.scrollTo({
+        top: timelineBoxRef.current.scrollHeight,
+        behavior: 'smooth',
+      })
+    }
+  }, [timelineComments])
+
+  useEffect(() => {
+    if (!actionMenuOpen) return undefined
+
+    const closeActionMenu = (event) => {
+      if (!actionMenuRef.current?.contains(event.target)) {
+        setActionMenuOpen(false)
+      }
+    }
+    const closeActionMenuOnEscape = (event) => {
+      if (event.key === 'Escape') setActionMenuOpen(false)
+    }
+
+    document.addEventListener('mousedown', closeActionMenu)
+    document.addEventListener('keydown', closeActionMenuOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeActionMenu)
+      document.removeEventListener('keydown', closeActionMenuOnEscape)
+    }
+  }, [actionMenuOpen])
+
   const sendComment = async () => {
     if (!comment.trim()) return
 
@@ -534,8 +570,18 @@ function TicketDetailPage() {
       message: comment.trim(),
     })
 
+    setTimelineComments((comments) => [...comments, { author: 'Requester', message: comment.trim() }])
     setComment('')
-    load()
+  }
+
+  const selectAction = async (action) => {
+    await apiClient.post(`${API_BASE_URL}/tickets/${ticketNumber}/comments`, {
+      role: 'REQUESTER',
+      message: `The requester has selected ${action}.`,
+    })
+
+    setTimelineComments((comments) => [...comments, { author: 'Requester', message: `The requester has selected ${action}.` }])
+    setActionMenuOpen(false)
   }
 
   if (loading) {
@@ -565,9 +611,25 @@ function TicketDetailPage() {
         <div className="left-cluster">
           <button type="button" className="back-button" onClick={() => navigate('/dashboard')}>‹</button>
           <h1>{ticket.ticketNumber}</h1>
-          <button type="button" className="refresh-button small" onClick={load}>Refresh</button>
         </div>
-        <button type="button" className="primary-button small">Action</button>
+        <div className="action-menu" ref={actionMenuRef}>
+          <button
+            type="button"
+            className="small action-menu-trigger"
+            aria-expanded={actionMenuOpen}
+            aria-haspopup="menu"
+            onClick={() => setActionMenuOpen((open) => !open)}
+          >
+            Action <span className={`action-menu-chevron${actionMenuOpen ? ' is-open' : ''}`} aria-hidden="true" />
+          </button>
+          {actionMenuOpen && (
+            <div className="action-menu-list" role="menu">
+              {['Action 1', 'Action 2', 'Action 3'].map((action) => (
+                <button key={action} type="button" role="menuitem" onClick={() => selectAction(action)}>{action}</button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="info-grid">
@@ -585,19 +647,31 @@ function TicketDetailPage() {
       </div>
 
       <div className="tabs">
-        <button type="button" className="active">Timeline</button>
+        <button type="button" className="active"><span className="timeline-tab-label">Timeline</span></button>
       </div>
 
       <div className="panel detail-panel">
-        <div className="timeline-box">
-          <div className="comment-bubble">
-            <div className="comment-author">Requester</div>
-            <div className="comment-text">{ticket.description}</div>
-          </div>
+        <div className="timeline-box" ref={timelineBoxRef}>
+          {timelineComments.map((timelineComment, index) => (
+            <div className="comment-bubble" key={`${timelineComment.message}-${index}`}>
+              <div className="comment-author">{timelineComment.author}</div>
+              <div className="comment-text">{timelineComment.message}</div>
+            </div>
+          ))}
         </div>
 
         <div className="comment-box">
-          <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Comment" />
+          <input
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                sendComment()
+              }
+            }}
+            placeholder="Comment"
+          />
           <button type="button" onClick={sendComment}>Send</button>
         </div>
       </div>
