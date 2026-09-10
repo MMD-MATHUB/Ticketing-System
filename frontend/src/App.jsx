@@ -609,7 +609,9 @@ function TicketDetailPage() {
     <section className="page detail-page">
       <div className="detail-header">
         <div className="left-cluster">
-          <button type="button" className="back-button" onClick={() => navigate('/dashboard')}>‹</button>
+          <button type="button" className="back-button" aria-label="Back to dashboard" onClick={() => navigate('/dashboard')}>
+            <span className="back-chevron" aria-hidden="true" />
+          </button>
           <h1>{ticket.ticketNumber}</h1>
         </div>
         <div className="action-menu" ref={actionMenuRef}>

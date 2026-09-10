@@ -1671,6 +1671,7 @@ tbody tr:hover {
 }
 
 .back-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1681,9 +1682,19 @@ tbody tr:hover {
   border: 1px solid #dcdce6;
   background: #fff;
   color: #18181b;
-  font-size: 20px;
-  line-height: 1;
   cursor: pointer;
+}
+
+.back-chevron {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  border-radius: 2px;
+  transform: translate(-40%, -50%) rotate(45deg);
 }
 
 .back-button:hover {
