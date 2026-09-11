@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { selectApplication } from '../../../store/authSlice'
 import './ApplicationSelectionPage.css'
 
+const applicationOrder = ['requester', 'analysis', 'processing']
+
 export function ApplicationSelectionPage() {
   const applications = useSelector((state) => state.auth.applications)
   const user = useSelector((state) => state.auth.user)
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const orderedApplications = [...applications].sort((left, right) => applicationOrder.indexOf(left.key) - applicationOrder.indexOf(right.key))
 
   const openApplication = (application) => {
     dispatch(selectApplication(application.key))
@@ -23,7 +26,7 @@ export function ApplicationSelectionPage() {
       </div>
 
       <div className="application-grid">
-        {applications.map((application) => (
+        {orderedApplications.map((application) => (
           <button
             type="button"
             className={`application-option application-${application.key}`}

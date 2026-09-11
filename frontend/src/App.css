@@ -414,6 +414,86 @@
   align-content: start;
 }
 
+.analysis-dashboard-search {
+  grid-column: auto;
+  max-width: 620px;
+  margin: 8px 0 4px;
+}
+
+.analysis-dashboard-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.analysis-dashboard-title-row h1 {
+  margin: 0;
+}
+
+.analysis-app-tag {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #efedff;
+  color: #584cb9;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.analysis-dashboard-kpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 174px);
+  grid-auto-flow: row;
+  max-width: none;
+  min-height: 360px;
+  overflow: visible;
+}
+
+.analysis-dashboard-card {
+  min-height: 174px;
+  height: 174px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.analysis-dashboard-page > .dashboard-grid {
+  margin-top: 0;
+}
+
+.analysis-dashboard-card h3 {
+  min-height: 38px;
+  margin: 7px 0 10px;
+  font-size: 15px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.analysis-nav-multiline {
+  display: inline-block;
+  line-height: 1.2;
+}
+
+.analysis-dashboard-card p {
+  margin: auto 0 0;
+  min-height: 36px;
+  max-width: 100%;
+  color: #6e6e7c;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.analysis-single-line-kpi {
+  font-size: 13px !important;
+  white-space: nowrap;
+}
+
 .dashboard-header {
   align-items: center;
   margin-bottom: 0;
@@ -468,6 +548,12 @@
   max-width: none;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
+}
+
+.dashboard-kpis.analysis-dashboard-kpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 174px);
+  min-height: 360px;
 }
 
 .dashboard-kpi {
@@ -603,6 +689,20 @@
   .dashboard-insights,
   .dashboard-insights > .dashboard-panel {
     min-height: 0;
+  }
+
+  .shell:has(.analysis-dashboard-page),
+  .shell:has(.analysis-dashboard-page) .content {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .analysis-dashboard-page {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+    grid-template-rows: none;
   }
 }
 
@@ -2176,6 +2276,12 @@ tbody tr:hover {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .analysis-dashboard-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(2, 174px);
+    min-height: 360px;
+  }
+
   .dashboard-tools {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2184,6 +2290,10 @@ tbody tr:hover {
     grid-column: 1 / -1;
     width: 100%;
     grid-template-columns: minmax(0, 1fr) 92px;
+  }
+
+  .analysis-dashboard-search {
+    max-width: none;
   }
 }
 
@@ -2289,13 +2399,17 @@ tbody tr:hover {
     top: -1px;
     right: -1px;
     width: calc(100% + 2px);
+    max-height: calc(100vh - 28px);
     display: block;
     padding: 55px 14px 14px;
+    overflow-y: auto;
     background: #fff;
     border: 1px solid #e4e4ed;
     border-radius: 14px;
     box-shadow: 0 18px 36px rgba(36, 35, 67, 0.16);
     z-index: 1;
+    scrollbar-width: thin;
+    scrollbar-color: #c9c7e8 transparent;
   }
 
   .menu-open .sidebar .nav {
@@ -2331,6 +2445,12 @@ tbody tr:hover {
 
   .dashboard-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analysis-dashboard-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(4, 174px);
+    min-height: 744px;
   }
 
   .dashboard-tools {
@@ -2403,11 +2523,27 @@ tbody tr:hover {
     font-size: 11px;
   }
 
+  .analysis-dashboard-card p {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
   .kpis,
   .form-grid,
   .filter-grid,
   .info-grid {
     grid-template-columns: 1fr;
+  }
+
+  .analysis-dashboard-kpis {
+    grid-template-rows: repeat(8, 174px);
+    min-height: 1488px;
+  }
+
+  .analysis-dashboard-card:nth-child(-n + 4),
+  .analysis-dashboard-card:nth-child(n + 5) {
+    grid-column: span 12;
   }
 
   .page-header,

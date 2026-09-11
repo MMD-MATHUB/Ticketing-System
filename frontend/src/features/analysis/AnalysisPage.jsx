@@ -1,12 +1,39 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import apiClient from '../../api/apiClient'
 import { applications } from '../../shared/applications/applicationCatalog'
 import { subscribeToLiveUpdates } from '../../shared/liveUpdates'
+import { SearchableSelect } from '../requester/SearchableSelect'
+import { getEscalationValue, getMaterialsValue, getSourcingCountry, prettyStatus, truncateText } from '../requester/ticketUtils'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+
+const analysisViewConfig = {
+  'not-started': { title: 'Not Started Tickets', description: 'Tickets awaiting analysis', matches: (ticket) => ticket.status === 'NotStarted' },
+  'in-progress': { title: 'In Progress Tickets', description: 'Analysis currently underway', matches: (ticket) => ticket.status === 'InProgress' },
+  'my-analysis-tasks': { title: 'My Analysis Tasks', description: 'Tasks assigned to me', matches: () => true },
+  're-analyse-tasks': { title: 'Re-analyse Tasks', description: 'Tickets needing another review', matches: () => true },
+  'pending-handler-action': { title: 'Pending Handler Action', description: 'Waiting for handler input', matches: (ticket) => ticket.status === 'InProgress' },
+  'processed-today': { title: 'Processed Today', description: 'Completed during this day', matches: (ticket) => new Date(ticket.updatedAt).toDateString() === new Date().toDateString() },
+  cancelled: { title: 'Cancellation Requests/Cancelled tickets', description: 'Closed or awaiting cancellation', matches: (ticket) => ticket.status === 'Cancelled' || ticket.status === 'Resolved' },
+}
+
+function getAnalysisTickets(tickets, view) {
+  return tickets.filter(analysisViewConfig[view]?.matches || (() => true))
+}
+
+function getShare(tickets, view) {
+  if (!tickets.length) return 0
+  return Math.round((getAnalysisTickets(tickets, view).length / tickets.length) * 100)
+}
 
 export function AnalysisPage() {
   const application = applications.analysis
   const [overview, setOverview] = useState(null)
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [analysisTickets, setAnalysisTickets] = useState([])
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const view = searchParams.get('view')
 
   const loadOverview = () => {
     apiClient.get('/api/analysis/overview')
@@ -16,28 +43,170 @@ export function AnalysisPage() {
 
   useEffect(() => {
     loadOverview()
-    return subscribeToLiveUpdates(loadOverview)
+    const loadTickets = () => {
+      apiClient.get('/api/tickets').then((response) => setAnalysisTickets(response.data))
+    }
+    loadTickets()
+    return subscribeToLiveUpdates(() => {
+      loadOverview()
+      loadTickets()
+    })
   }, [])
 
+  const searchTicket = async (event) => {
+    event.preventDefault()
+    if (!search.trim()) return
+
+    try {
+      const response = await apiClient.get(`/api/tickets/search?ticket=${encodeURIComponent(search.trim())}`)
+      const ticket = response.data[0]
+      if (ticket) {
+        navigate(`/tickets/${ticket.ticketNumber}`)
+      } else {
+        setError(`No ticket found for "${search.trim()}".`)
+      }
+    } catch {
+      setError('Unable to search for this ticket.')
+    }
+  }
+
+  const cards = [
+    ['Not Started Tickets', getAnalysisTickets(analysisTickets, 'not-started').length, `${getShare(analysisTickets, 'not-started')}% of tickets awaiting analysis`, '#b85c5c', '/analysis?view=not-started'],
+    ['In Progress Tickets', getAnalysisTickets(analysisTickets, 'in-progress').length, `${getShare(analysisTickets, 'in-progress')}% currently in progress`, '#d97706', '/analysis?view=in-progress'],
+    ['My Analysis Tasks', getAnalysisTickets(analysisTickets, 'my-analysis-tasks').length, 'Tasks assigned to me', '#584cb9', '/analysis?view=my-analysis-tasks'],
+    ['Re-analyse Tasks', getAnalysisTickets(analysisTickets, 're-analyse-tasks').length, 'Tickets needing another review', '#584cb9', '/analysis?view=re-analyse-tasks'],
+    ['Pending Handler Action', getAnalysisTickets(analysisTickets, 'pending-handler-action').length, `${getShare(analysisTickets, 'pending-handler-action')}% waiting for handler input`, '#d97706', '/analysis?view=pending-handler-action'],
+    ['Processed Today', getAnalysisTickets(analysisTickets, 'processed-today').length, 'Completed during this day', '#0f9f75', '/analysis?view=processed-today'],
+    ['Cancellation Requests/Cancelled tickets', getAnalysisTickets(analysisTickets, 'cancelled').length, 'Closed or awaiting cancellation', '#b85c5c', '/analysis?view=cancelled'],
+  ]
+
+  if (view) {
+    return <AnalysisTicketPage view={view} />
+  }
+
   return (
-    <section className="page application-workspace">
-      <div className="eyebrow">Application</div>
-      <h1>{application.name}</h1>
-      <p>{application.description}</p>
+    <section className="page dashboard-page analysis-dashboard-page">
+      <header className="page-header dashboard-header">
+        <div>
+          <div className="eyebrow">Analysis</div>
+          <div className="analysis-dashboard-title-row">
+            <h1>Dashboard</h1>
+            <span className="analysis-app-tag">Analysis</span>
+          </div>
+          <p className="dashboard-intro">{application.description}</p>
+        </div>
+      </header>
+      <div className="dashboard-tools">
+        <form className="search dashboard-search analysis-dashboard-search" onSubmit={searchTicket}>
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tickets" aria-label="Search tickets" />
+          <button type="submit">Search</button>
+        </form>
+      </div>
       {error && <div className="panel state-panel">{error}</div>}
       {overview && (
         <>
-          <div className="kpis">
-            <article className="card"><div className="eyebrow">Portfolio</div><h3>Total tickets</h3><div className="value">{overview.totalTickets}</div></article>
-            <article className="card"><div className="eyebrow">Open work</div><h3>Open tickets</h3><div className="value">{overview.openTickets}</div></article>
-            <article className="card"><div className="eyebrow">Completed</div><h3>Closed tickets</h3><div className="value">{overview.closedTickets}</div></article>
+          <div className="kpis dashboard-kpis analysis-dashboard-kpis">
+            {cards.map(([title, value, sub, color, route]) => (
+              <article
+                className="card clickable analysis-dashboard-card"
+                key={title}
+                role="link"
+                tabIndex="0"
+                onClick={() => navigate(route)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    navigate(route)
+                  }
+                }}
+              >
+                <div className="eyebrow">Analysis</div>
+                <h3>{title === 'Cancellation Requests/Cancelled tickets' ? <>Cancellation Requests/<br />Cancelled tickets</> : title}</h3>
+                <div className="value" style={{ color }}>{value}</div>
+                <p className={title === 'Re-analyse Tasks' ? 'analysis-single-line-kpi' : ''}>{sub}</p>
+              </article>
+            ))}
           </div>
-          <div className="grid">
+          <div className="grid dashboard-grid">
             <section className="panel"><div className="panel-title">Tickets by priority</div>{overview.byPriority.map((item) => <div className="bar-row" key={item.label}><span className="label">{item.label}</span><div className="bar"><div className="fill" style={{ width: `${Math.max((item.count / Math.max(...overview.byPriority.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div><strong>{item.count}</strong></div>)}</section>
             <section className="panel"><div className="panel-title">Open tickets by plant</div>{overview.byPlant.map((item) => <div className="bar-row" key={item.label}><span className="label">{item.label}</span><div className="bar"><div className="fill" style={{ width: `${Math.max((item.count / Math.max(...overview.byPlant.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div><strong>{item.count}</strong></div>)}</section>
           </div>
         </>
       )}
+    </section>
+  )
+}
+
+function AnalysisTicketPage({ view }) {
+  const [tickets, setTickets] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [plantFilter, setPlantFilter] = useState('')
+  const [ticketFilter, setTicketFilter] = useState('')
+  const [textFilter, setTextFilter] = useState('')
+
+  const loadTickets = useCallback(() => {
+    let active = true
+
+    apiClient.get('/api/tickets')
+      .then((response) => {
+        if (active) setTickets(response.data)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    loadTickets()
+    return subscribeToLiveUpdates(loadTickets)
+  }, [loadTickets])
+
+  const viewConfig = analysisViewConfig[view] || { title: 'Analysis tickets', description: 'Analysis work queue', matches: () => true }
+
+  const scopedTickets = useMemo(() => getAnalysisTickets(tickets, view), [tickets, view])
+  const plants = [...new Set(scopedTickets.map((ticket) => ticket.plantName).filter(Boolean).sort())]
+  const ticketNumbers = [...new Set(scopedTickets.map((ticket) => ticket.ticketNumber).filter(Boolean))]
+  const visibleTickets = scopedTickets.filter((ticket) => {
+    const searchable = [ticket.ticketNumber, ticket.title, ticket.description, ticket.plantName, prettyStatus(ticket.status)].join(' ').toLowerCase()
+    return (!plantFilter || ticket.plantName === plantFilter)
+      && (!ticketFilter || ticket.ticketNumber === ticketFilter)
+      && (!textFilter || searchable.includes(textFilter.trim().toLowerCase()))
+  })
+
+  if (loading) return <section className="page"><div className="panel state-panel">Loading analysis tickets...</div></section>
+
+  return (
+    <section className="page ticket-list-page analysis-ticket-page">
+      <header className="page-header ticket-page-header compact">
+        <div>
+          <div className="eyebrow">Analysis</div>
+          <div className="ticket-title-row">
+            <h1>{viewConfig.title}</h1>
+            <span className="analysis-app-tag">Analysis</span>
+          </div>
+          <p className="ticket-page-subtitle">{viewConfig.description}</p>
+        </div>
+      </header>
+
+      <div className="panel table-card ticket-table-card">
+        <div className="filters">
+          <label><span>Plant</span><SearchableSelect value={plantFilter} onChange={setPlantFilter} options={plants.map((plant) => ({ value: plant, label: plant }))} placeholder="Search plants" /></label>
+          <label><span>Ticket</span><SearchableSelect value={ticketFilter} onChange={setTicketFilter} options={ticketNumbers.map((number) => ({ value: number, label: number }))} placeholder="Search tickets" /></label>
+          <label><span>Search</span><input value={textFilter} onChange={(event) => setTextFilter(event.target.value)} placeholder="Search analysis tickets" /></label>
+        </div>
+        <div className="table-wrap">
+          {visibleTickets.length ? (
+            <table>
+              <thead><tr><th>Ticket</th><th>Created on</th><th>Ticket Type</th><th>Plant</th><th>Status</th><th>Materials</th><th>Ticket Reason</th><th>Site/Base/Windfarm name</th><th>Platform/Turbine number</th><th>Sourcing Country</th><th>Description</th><th>Modified on</th><th>Is Escalated</th></tr></thead>
+              <tbody>{visibleTickets.map((ticket) => <tr key={ticket.ticketNumber} onClick={() => window.location.href = `/tickets/${ticket.ticketNumber}`}>
+                <td>{ticket.ticketNumber}</td><td>{new Date(ticket.createdAt).toLocaleString()}</td><td>{ticket.ticketType}</td><td>{ticket.plantName}</td><td>{prettyStatus(ticket.status)}</td><td>{getMaterialsValue(ticket)}</td><td>{ticket.title}</td><td>{ticket.siteName || '—'}</td><td>{ticket.equipmentNumber || '—'}</td><td>{getSourcingCountry(ticket)}</td><td>{truncateText(ticket.description || '—', 60)}</td><td>{new Date(ticket.updatedAt).toLocaleString()}</td><td>{getEscalationValue(ticket)}</td>
+              </tr>)}</tbody>
+            </table>
+          ) : <div className="empty">No tickets found.</div>}
+        </div>
+      </div>
     </section>
   )
 }
