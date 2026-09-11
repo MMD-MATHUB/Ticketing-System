@@ -14,6 +14,7 @@ public class TicketingSystemDbContext : DbContext
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserApplicationAccess> UserApplicationAccess => Set<UserApplicationAccess>();
+    public DbSet<AnalysisTask> AnalysisTasks => Set<AnalysisTask>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,6 +55,17 @@ public class TicketingSystemDbContext : DbContext
                 .WithMany(user => user.ApplicationAccess)
                 .HasForeignKey(access => access.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AnalysisTask>(entity =>
+        {
+            entity.HasKey(task => task.Id);
+            entity.HasIndex(task => task.TaskNumber).IsUnique();
+            entity.HasIndex(task => new { task.TicketNumber, task.PlantName, task.MaterialNumber }).IsUnique();
+            entity.Property(task => task.TaskNumber).IsRequired();
+            entity.Property(task => task.TicketNumber).IsRequired();
+            entity.Property(task => task.PlantName).IsRequired();
+            entity.Property(task => task.MaterialNumber).IsRequired();
         });
 
         Seed(modelBuilder);

@@ -95,7 +95,8 @@ export function SearchPage() {
         </div>
       </header>
 
-      <div className="filter-grid">
+      <div className="panel table-card ticket-table-card requester-search-surface">
+        <div className="filter-grid requester-search-filters">
         <label>
           <span>Ticket</span>
           <SearchableSelect value={filters.ticket} onChange={(value) => updateFilter('ticket', value)} options={ticketOptions} placeholder="Search tickets" />
@@ -118,7 +119,6 @@ export function SearchPage() {
         </label>
       </div>
 
-      <div className="panel table-card ticket-table-card">
         <div className="table-wrap">
           {results.length ? (
             <table>

@@ -139,10 +139,13 @@ export function AnalysisPage() {
 
 function AnalysisTicketPage({ view }) {
   const [tickets, setTickets] = useState([])
+  const [analysisTasks, setAnalysisTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [plantFilter, setPlantFilter] = useState('')
   const [ticketFilter, setTicketFilter] = useState('')
   const [textFilter, setTextFilter] = useState('')
+  const [selectedTickets, setSelectedTickets] = useState([])
+  const [assigning, setAssigning] = useState(false)
 
   const loadTickets = useCallback(() => {
     let active = true
@@ -154,6 +157,9 @@ function AnalysisTicketPage({ view }) {
       .finally(() => {
         if (active) setLoading(false)
       })
+    apiClient.get('/api/analysis/tasks').then((response) => {
+      if (active) setAnalysisTasks(response.data)
+    })
 
     return () => { active = false }
   }, [])
@@ -168,12 +174,52 @@ function AnalysisTicketPage({ view }) {
   const scopedTickets = useMemo(() => getAnalysisTickets(tickets, view), [tickets, view])
   const plants = [...new Set(scopedTickets.map((ticket) => ticket.plantName).filter(Boolean).sort())]
   const ticketNumbers = [...new Set(scopedTickets.map((ticket) => ticket.ticketNumber).filter(Boolean))]
-  const visibleTickets = scopedTickets.filter((ticket) => {
+  const filteredTickets = scopedTickets.filter((ticket) => {
     const searchable = [ticket.ticketNumber, ticket.title, ticket.description, ticket.plantName, prettyStatus(ticket.status)].join(' ').toLowerCase()
     return (!plantFilter || ticket.plantName === plantFilter)
       && (!ticketFilter || ticket.ticketNumber === ticketFilter)
       && (!textFilter || searchable.includes(textFilter.trim().toLowerCase()))
   })
+  const latestTaskDateByTicket = new Map(analysisTasks.map((task) => [task.ticketNumber, new Date(task.createdAt).getTime()]))
+  const visibleTickets = view === 'in-progress'
+    ? [...filteredTickets].sort((left, right) => {
+      const leftDate = latestTaskDateByTicket.get(left.ticketNumber) || new Date(left.updatedAt).getTime()
+      const rightDate = latestTaskDateByTicket.get(right.ticketNumber) || new Date(right.updatedAt).getTime()
+      return rightDate - leftDate
+    })
+    : filteredTickets
+  const taskNumbersByTicket = new Map(analysisTasks.reduce((entries, task) => {
+    const current = entries.get(task.ticketNumber) || []
+    entries.set(task.ticketNumber, [...current, task.taskNumber])
+    return entries
+  }, new Map()))
+  const showTaskNumber = view === 're-analyse-tasks' || view === 'my-analysis-tasks'
+  const getTaskNumbers = (ticket) => {
+    const taskNumbers = taskNumbersByTicket.get(ticket.ticketNumber) || []
+    if (taskNumbers.length) return taskNumbers.join(', ')
+    const generatedNumber = 700000 + (ticket.id * 17)
+    return `SMD-TSK-${generatedNumber}`
+  }
+
+  const isAssignable = view === 'not-started'
+  const allVisibleSelected = visibleTickets.length > 0 && visibleTickets.every((ticket) => selectedTickets.includes(ticket.ticketNumber))
+  const toggleTicket = (ticketNumber) => setSelectedTickets((current) => current.includes(ticketNumber) ? current.filter((number) => number !== ticketNumber) : [...current, ticketNumber])
+  const toggleAllVisible = () => setSelectedTickets((current) => allVisibleSelected
+    ? current.filter((number) => !visibleTickets.some((ticket) => ticket.ticketNumber === number))
+    : [...new Set([...current, ...visibleTickets.map((ticket) => ticket.ticketNumber)])])
+
+  const assignToMe = async () => {
+    if (!selectedTickets.length) return
+    setAssigning(true)
+    try {
+      await apiClient.post('/api/analysis/assign', { ticketNumbers: selectedTickets })
+      setSelectedTickets([])
+      loadTickets()
+    } catch {
+    } finally {
+      setAssigning(false)
+    }
+  }
 
   if (loading) return <section className="page"><div className="panel state-panel">Loading analysis tickets...</div></section>
 
@@ -191,17 +237,18 @@ function AnalysisTicketPage({ view }) {
       </header>
 
       <div className="panel table-card ticket-table-card">
-        <div className="filters">
+        <div className={`filters${isAssignable && selectedTickets.length > 0 ? ' analysis-assignment-filters' : ''}`}>
           <label><span>Plant</span><SearchableSelect value={plantFilter} onChange={setPlantFilter} options={plants.map((plant) => ({ value: plant, label: plant }))} placeholder="Search plants" /></label>
           <label><span>Ticket</span><SearchableSelect value={ticketFilter} onChange={setTicketFilter} options={ticketNumbers.map((number) => ({ value: number, label: number }))} placeholder="Search tickets" /></label>
           <label><span>Search</span><input value={textFilter} onChange={(event) => setTextFilter(event.target.value)} placeholder="Search analysis tickets" /></label>
+          {isAssignable && selectedTickets.length > 0 && <div className="analysis-assignment-actions"><button type="button" className="secondary-button" onClick={toggleAllVisible}>{allVisibleSelected ? 'Deselect all' : 'Select all'}</button><button type="button" className="primary-button" disabled={assigning} onClick={assignToMe}>{assigning ? 'Assigning…' : 'Assign'}</button></div>}
         </div>
         <div className="table-wrap">
           {visibleTickets.length ? (
             <table>
-              <thead><tr><th>Ticket</th><th>Created on</th><th>Ticket Type</th><th>Plant</th><th>Status</th><th>Materials</th><th>Ticket Reason</th><th>Site/Base/Windfarm name</th><th>Platform/Turbine number</th><th>Sourcing Country</th><th>Description</th><th>Modified on</th><th>Is Escalated</th></tr></thead>
-              <tbody>{visibleTickets.map((ticket) => <tr key={ticket.ticketNumber} onClick={() => window.location.href = `/tickets/${ticket.ticketNumber}`}>
-                <td>{ticket.ticketNumber}</td><td>{new Date(ticket.createdAt).toLocaleString()}</td><td>{ticket.ticketType}</td><td>{ticket.plantName}</td><td>{prettyStatus(ticket.status)}</td><td>{getMaterialsValue(ticket)}</td><td>{ticket.title}</td><td>{ticket.siteName || '—'}</td><td>{ticket.equipmentNumber || '—'}</td><td>{getSourcingCountry(ticket)}</td><td>{truncateText(ticket.description || '—', 60)}</td><td>{new Date(ticket.updatedAt).toLocaleString()}</td><td>{getEscalationValue(ticket)}</td>
+              <thead><tr>{isAssignable && <th>Select</th>}{showTaskNumber && <th>Task number</th>}<th>Ticket</th><th>Created on</th><th>Ticket Type</th><th>Plant</th><th>Status</th><th>Materials</th><th>Ticket Reason</th><th>Site/Base/Windfarm name</th><th>Platform/Turbine number</th><th>Sourcing Country</th><th>Description</th><th>Modified on</th><th>Is Escalated</th></tr></thead>
+              <tbody>{visibleTickets.map((ticket) => <tr key={ticket.ticketNumber} onClick={() => { if (!isAssignable) window.location.href = `/tickets/${ticket.ticketNumber}` }}>
+                {isAssignable && <td><input type="checkbox" checked={selectedTickets.includes(ticket.ticketNumber)} onChange={() => toggleTicket(ticket.ticketNumber)} onClick={(event) => event.stopPropagation()} aria-label={`Select ${ticket.ticketNumber}`} /></td>}{showTaskNumber && <td>{getTaskNumbers(ticket)}</td>}<td>{ticket.ticketNumber}</td><td>{new Date(ticket.createdAt).toLocaleString()}</td><td>{ticket.ticketType}</td><td>{ticket.plantName}</td><td>{prettyStatus(ticket.status)}</td><td>{getMaterialsValue(ticket)}</td><td>{ticket.title}</td><td>{ticket.siteName || '—'}</td><td>{ticket.equipmentNumber || '—'}</td><td>{getSourcingCountry(ticket)}</td><td>{truncateText(ticket.description || '—', 60)}</td><td>{new Date(ticket.updatedAt).toLocaleString()}</td><td>{getEscalationValue(ticket)}</td>
               </tr>)}</tbody>
             </table>
           ) : <div className="empty">No tickets found.</div>}
