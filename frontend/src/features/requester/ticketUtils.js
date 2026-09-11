@@ -5,6 +5,23 @@ export const CLOSED_CANCELLED_TABS = [
   { key: 'cancelled', label: 'Cancelled tickets', statuses: ['Cancelled'] },
 ]
 
+export function matchesTicketView(ticket, view) {
+  switch (view) {
+    case 'not-started':
+      return ticket.status === 'NotStarted'
+    case 'in-progress':
+      return ticket.status === 'InProgress'
+    case 'pending-reply':
+    case 'pending-handler-action':
+      return ticket.status === 'NotStarted' || ticket.status === 'InProgress'
+    case 'closed':
+    case 'cancelled':
+      return ticket.status === 'Resolved' || ticket.status === 'Cancelled'
+    default:
+      return true
+  }
+}
+
 export const truncateText = (value, maxLength = 80) => {
   if (!value) return ''
   if (value.length <= maxLength) return value

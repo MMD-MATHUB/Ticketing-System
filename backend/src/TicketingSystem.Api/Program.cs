@@ -53,6 +53,11 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequesterAccess", policy => policy.RequireClaim("application", "requester"));
     options.AddPolicy("ProcessingAccess", policy => policy.RequireClaim("application", "processing"));
     options.AddPolicy("AnalysisAccess", policy => policy.RequireClaim("application", "analysis"));
+    options.AddPolicy("TicketReadAccess", policy => policy.RequireAssertion(context =>
+        context.User.Claims
+            .Where(claim => claim.Type == "application")
+            .Select(claim => claim.Value)
+            .Any(application => application is "requester" or "processing" or "analysis")));
 });
 
 builder.Services.AddScoped<IJwtTokenService>(provider =>

@@ -78,6 +78,7 @@ public class TicketingSystemDbContext : DbContext
                 Email = "demo@example.com",
                 Name = "Demo User",
                 PasswordHash = passwordHash,
+                UserType = UserType.Requester,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             },
@@ -87,15 +88,17 @@ public class TicketingSystemDbContext : DbContext
                 Email = "admin@example.com",
                 Name = "Admin User",
                 PasswordHash = passwordHash,
+                UserType = UserType.Admin,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             },
             new User
             {
                 Id = "3",
-                Email = "processing@example.com",
+                Email = "handler@example.com",
                 Name = "Processing User",
                 PasswordHash = passwordHash,
+                UserType = UserType.TeamMember,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             },
@@ -105,6 +108,7 @@ public class TicketingSystemDbContext : DbContext
                 Email = "analysis@example.com",
                 Name = "Analysis User",
                 PasswordHash = passwordHash,
+                UserType = UserType.TeamMember,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             }
@@ -116,7 +120,6 @@ public class TicketingSystemDbContext : DbContext
             new UserApplicationAccess { UserId = "2", Application = ApplicationArea.Processing },
             new UserApplicationAccess { UserId = "2", Application = ApplicationArea.Analysis },
             new UserApplicationAccess { UserId = "3", Application = ApplicationArea.Processing },
-            new UserApplicationAccess { UserId = "3", Application = ApplicationArea.Requester },
             new UserApplicationAccess { UserId = "4", Application = ApplicationArea.Analysis },
             new UserApplicationAccess { UserId = "4", Application = ApplicationArea.Processing }
         );
@@ -235,8 +238,12 @@ public class TicketingSystemDbContext : DbContext
             new Ticket { Id = 15, TicketNumber = "SMD-TKT-2406250015", Title = "Activation documentation request", TicketType = "Activation", Description = "Provide activation documentation for the recently installed unit.", RequesterName = "Diana Stratan", RequesterEmail = "diana.stratan@company.com", SiteName = "Site N", EquipmentNumber = "EQ-1412", Priority = Priority.Low, Status = TicketStatus.Resolved, PlantId = 2, CreatedAt = DateTime.UtcNow.AddDays(-65), UpdatedAt = DateTime.UtcNow.AddDays(-61) },
             new Ticket { Id = 16, TicketNumber = "SMD-TKT-2406190016", Title = "Check turbine communication link", TicketType = "Activation", Description = "Communication checks are needed after intermittent connection loss.", RequesterName = "Diana Stratan", RequesterEmail = "diana.stratan@company.com", SiteName = "Site O", EquipmentNumber = "EQ-1505", Priority = Priority.Medium, Status = TicketStatus.InProgress, PlantId = 3, CreatedAt = DateTime.UtcNow.AddDays(-71), UpdatedAt = DateTime.UtcNow.AddDays(-7) },
             new Ticket { Id = 17, TicketNumber = "SMD-TKT-2406120017", Title = "Request spare nacelle filters", TicketType = "Material request", Description = "Spare filters requested for planned nacelle maintenance.", RequesterName = "Diana Stratan", RequesterEmail = "diana.stratan@company.com", SiteName = "Site P", EquipmentNumber = "EQ-1608", Priority = Priority.Medium, Status = TicketStatus.NotStarted, PlantId = 4, CreatedAt = DateTime.UtcNow.AddDays(-78), UpdatedAt = DateTime.UtcNow.AddDays(-78) },
-            new Ticket { Id = 18, TicketNumber = "SMD-TKT-2406050018", Title = "Close completed service request", TicketType = "Additional requester", Description = "Confirm final documentation and close the completed service request.", RequesterName = "Diana Stratan", RequesterEmail = "diana.stratan@company.com", SiteName = "Site Q", EquipmentNumber = "EQ-1711", Priority = Priority.Low, Status = TicketStatus.Resolved, PlantId = 4, CreatedAt = DateTime.UtcNow.AddDays(-85), UpdatedAt = DateTime.UtcNow.AddDays(-80)
-            }
+            new Ticket { Id = 18, TicketNumber = "SMD-TKT-2406050018", Title = "Close completed service request", TicketType = "Additional requester", Description = "Confirm final documentation and close the completed service request.", RequesterName = "Diana Stratan", RequesterEmail = "diana.stratan@company.com", SiteName = "Site Q", EquipmentNumber = "EQ-1711", Priority = Priority.Low, Status = TicketStatus.Resolved, PlantId = 4, CreatedAt = DateTime.UtcNow.AddDays(-85), UpdatedAt = DateTime.UtcNow.AddDays(-80) },
+            new Ticket { Id = 19, TicketNumber = "SMD-TKT-2409100019", Title = "Inspect gearbox temperature alert", TicketType = "Activation", Description = "Investigate a new gearbox temperature alert before the next maintenance window.", RequesterName = "Diana Stratan", RequesterEmail = "diana.stratan@company.com", SiteName = "Site R", EquipmentNumber = "EQ-1814", Priority = Priority.Critical, Status = TicketStatus.NotStarted, PlantId = 1, CreatedAt = DateTime.UtcNow.AddDays(-1), UpdatedAt = DateTime.UtcNow.AddDays(-1) },
+            new Ticket { Id = 20, TicketNumber = "SMD-TKT-2409090020", Title = "Replace yaw motor sensor", TicketType = "Material request", Description = "Replacement sensor and installation guidance are required for the yaw motor.", RequesterName = "Diana Stratan", RequesterEmail = "diana.stratan@company.com", SiteName = "Site S", EquipmentNumber = "EQ-1920", Priority = Priority.High, Status = TicketStatus.InProgress, PlantId = 2, CreatedAt = DateTime.UtcNow.AddDays(-2), UpdatedAt = DateTime.UtcNow.AddHours(-8) },
+            new Ticket { Id = 21, TicketNumber = "SMD-TKT-2409080021", Title = "Review converter firmware package", TicketType = "Downgrading", Description = "Review the converter firmware package and confirm compatibility with the installed controller.", RequesterName = "Diana Stratan", RequesterEmail = "diana.stratan@company.com", SiteName = "Site T", EquipmentNumber = "EQ-2021", Priority = Priority.Medium, Status = TicketStatus.InProgress, PlantId = 3, CreatedAt = DateTime.UtcNow.AddDays(-3), UpdatedAt = DateTime.UtcNow.AddDays(-1) },
+            new Ticket { Id = 22, TicketNumber = "SMD-TKT-2409070022", Title = "Cancel duplicate maintenance request", TicketType = "Additional requester", Description = "Cancel this duplicate request after confirming the original ticket remains active.", RequesterName = "Diana Stratan", RequesterEmail = "diana.stratan@company.com", SiteName = "Site U", EquipmentNumber = "EQ-2122", Priority = Priority.Low, Status = TicketStatus.Cancelled, PlantId = 4, CreatedAt = DateTime.UtcNow.AddDays(-4), UpdatedAt = DateTime.UtcNow.AddDays(-2) },
+            new Ticket { Id = 23, TicketNumber = "SMD-TKT-2409060023", Title = "Complete hydraulic inspection", TicketType = "Activation", Description = "Hydraulic inspection completed and service documentation uploaded for review.", RequesterName = "Diana Stratan", RequesterEmail = "diana.stratan@company.com", SiteName = "Site V", EquipmentNumber = "EQ-2223", Priority = Priority.Medium, Status = TicketStatus.Resolved, PlantId = 1, CreatedAt = DateTime.UtcNow.AddDays(-5), UpdatedAt = DateTime.UtcNow.AddHours(-3) }
         );
     }
 }

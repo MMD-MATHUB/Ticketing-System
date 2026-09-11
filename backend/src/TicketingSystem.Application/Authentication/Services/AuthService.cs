@@ -24,12 +24,21 @@ public class AuthService
     {
         var user = await _userRepository.GetByEmailAsync(request.Email);
 
+        // Keep existing development databases compatible with the renamed handler login.
+        var legacyHandlerLogin = string.Equals(request.Email, "handler@example.com", StringComparison.OrdinalIgnoreCase)
+            && user is null;
+        if (legacyHandlerLogin)
+        {
+            user = await _userRepository.GetByEmailAsync("processing@example.com");
+        }
+
         if (user is null || !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash) || !user.IsActive)
         {
             return null;
         }
 
-        var applications = await _userRepository.GetApplicationsAsync(user.Id);
+        var userType = legacyHandlerLogin ? UserType.TeamMember : user.UserType;
+        var applications = GetApplicationsFor(userType);
         var token = _jwtTokenService.GenerateToken(user.Id, user.Email, user.Name, applications);
         user.LastLoginAt = DateTime.UtcNow;
         await _userRepository.UpdateAsync(user);
@@ -43,7 +52,8 @@ public class AuthService
             {
                 Id = user.Id,
                 Email = user.Email,
-                Name = user.Name
+                Name = user.Name,
+                UserType = userType.ToString()
             },
             Applications = applications.Select(ToApplicationDto).ToList()
         };
@@ -57,6 +67,17 @@ public class AuthService
             ApplicationArea.Processing => new("processing", "Processing", "Review, assign, and process incoming tickets."),
             ApplicationArea.Analysis => new("analysis", "Analysis", "Explore ticket trends and operational insights."),
             _ => throw new ArgumentOutOfRangeException(nameof(application))
+        };
+    }
+
+    private static IEnumerable<ApplicationArea> GetApplicationsFor(UserType userType)
+    {
+        return userType switch
+        {
+            UserType.Requester => new[] { ApplicationArea.Requester },
+            UserType.TeamMember => new[] { ApplicationArea.Analysis, ApplicationArea.Processing },
+            UserType.Admin => new[] { ApplicationArea.Requester, ApplicationArea.Analysis, ApplicationArea.Processing },
+            _ => Array.Empty<ApplicationArea>()
         };
     }
 }

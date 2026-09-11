@@ -75,10 +75,11 @@ export function LoginPage() {
         <div className="login-footer">
           <p className="demo-credentials">
             <strong>Demo Credentials:</strong><br />
-            Requester only: <code>demo@example.com</code><br />
-            Password: <code>password123</code>
-            <br /><br />
-            Multi-app: <code>admin@example.com</code><br />
+            Requester: <code>demo@example.com</code><br />
+            Password: <code>password123</code><br /><br />
+            Team member: <code>handler@example.com</code><br />
+            Password: <code>password123</code><br /><br />
+            Admin: <code>admin@example.com</code><br />
             Password: <code>password123</code>
           </p>
         </div>

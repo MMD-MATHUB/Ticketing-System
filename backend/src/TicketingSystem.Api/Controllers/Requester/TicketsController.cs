@@ -8,7 +8,7 @@ using TicketingSystem.Api.LiveUpdates;
 namespace TicketingSystem.Api.Controllers.Requester;
 
 [ApiController]
-[Authorize(Policy = "RequesterAccess")]
+[Authorize(Policy = "TicketReadAccess")]
 [Route("api/[controller]")]
 public class TicketsController : ControllerBase
 {
@@ -79,6 +79,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "RequesterAccess")]
     public async Task<ActionResult<TicketDto>> CreateTicket([FromBody] CreateTicketRequest request)
     {
         var validation = await _createTicketValidator.ValidateAsync(request);
@@ -100,6 +101,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("{ticketNumber}/comments")]
+    [Authorize(Policy = "RequesterAccess")]
     public async Task<ActionResult<TicketDto>> AddComment(string ticketNumber, [FromBody] AddCommentRequest request)
     {
         var validation = await _commentValidator.ValidateAsync(request);

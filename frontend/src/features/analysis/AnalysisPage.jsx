@@ -3,17 +3,17 @@ import apiClient from '../../api/apiClient'
 import { applications } from '../../shared/applications/applicationCatalog'
 import { subscribeToLiveUpdates } from '../../shared/liveUpdates'
 import { SearchableSelect } from '../requester/SearchableSelect'
-import { getEscalationValue, getMaterialsValue, getSourcingCountry, prettyStatus, truncateText } from '../requester/ticketUtils'
+import { getEscalationValue, getMaterialsValue, getSourcingCountry, matchesTicketView, prettyStatus, truncateText } from '../requester/ticketUtils'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const analysisViewConfig = {
-  'not-started': { title: 'Not Started Tickets', description: 'Tickets awaiting analysis', matches: (ticket) => ticket.status === 'NotStarted' },
-  'in-progress': { title: 'In Progress Tickets', description: 'Analysis currently underway', matches: (ticket) => ticket.status === 'InProgress' },
-  'my-analysis-tasks': { title: 'My Analysis Tasks', description: 'Tasks assigned to me', matches: () => true },
-  're-analyse-tasks': { title: 'Re-analyse Tasks', description: 'Tickets needing another review', matches: () => true },
-  'pending-handler-action': { title: 'Pending Handler Action', description: 'Waiting for handler input', matches: (ticket) => ticket.status === 'InProgress' },
+  'not-started': { title: 'Not Started Tickets', description: 'Tickets awaiting analysis', matches: (ticket) => matchesTicketView(ticket, 'not-started') },
+  'in-progress': { title: 'In Progress Tickets', description: 'Analysis currently underway', matches: (ticket) => matchesTicketView(ticket, 'in-progress') },
+  'my-analysis-tasks': { title: 'My Analysis Tasks', description: 'Not-started tickets assigned for analysis', matches: (ticket) => matchesTicketView(ticket, 'not-started') },
+  're-analyse-tasks': { title: 'Re-analyse Tasks', description: 'In-progress tickets needing another review', matches: (ticket) => matchesTicketView(ticket, 'in-progress') },
+  'pending-handler-action': { title: 'Pending Handler Action', description: 'Waiting for handler input', matches: (ticket) => matchesTicketView(ticket, 'pending-handler-action') },
   'processed-today': { title: 'Processed Today', description: 'Completed during this day', matches: (ticket) => new Date(ticket.updatedAt).toDateString() === new Date().toDateString() },
-  cancelled: { title: 'Cancellation Requests/Cancelled tickets', description: 'Closed or awaiting cancellation', matches: (ticket) => ticket.status === 'Cancelled' || ticket.status === 'Resolved' },
+  cancelled: { title: 'Cancellation Requests/Cancelled tickets', description: 'Closed or awaiting cancellation', matches: (ticket) => matchesTicketView(ticket, 'cancelled') },
 }
 
 function getAnalysisTickets(tickets, view) {
@@ -129,7 +129,7 @@ export function AnalysisPage() {
           </div>
           <div className="grid dashboard-grid">
             <section className="panel"><div className="panel-title">Tickets by priority</div>{overview.byPriority.map((item) => <div className="bar-row" key={item.label}><span className="label">{item.label}</span><div className="bar"><div className="fill" style={{ width: `${Math.max((item.count / Math.max(...overview.byPriority.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div><strong>{item.count}</strong></div>)}</section>
-            <section className="panel"><div className="panel-title">Open tickets by plant</div>{overview.byPlant.map((item) => <div className="bar-row" key={item.label}><span className="label">{item.label}</span><div className="bar"><div className="fill" style={{ width: `${Math.max((item.count / Math.max(...overview.byPlant.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div><strong>{item.count}</strong></div>)}</section>
+            <section className="panel"><div className="panel-title">Open tickets by plant</div><div className="panel-subtitle">Requests grouped by location</div>{overview.byPlant.map((item) => <div className="bar-row plant-row" key={item.label}><div className="plant-label"><span className="accent" /><span className="text">{item.label}</span></div><div className="bar"><div className="fill plant" style={{ width: `${Math.max((item.count / Math.max(...overview.byPlant.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div><strong className="plant-count">{item.count}</strong></div>)}</section>
           </div>
         </>
       )}
