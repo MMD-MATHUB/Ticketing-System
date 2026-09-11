@@ -134,7 +134,6 @@ function DashboardPage() {
     if (!dashboard?.stats) return []
     const s = dashboard.stats
     return [
-      { eyebrow: 'Overview', title: 'Total tickets', value: s.total, sub: `+${s.newThisWeek} created this week`, color: '#584cb9', subColor: '#16a34a', route: '/tickets' },
       { eyebrow: 'Queue', title: 'Not started', value: s.notStarted, sub: 'Tickets awaiting processing', color: '#b85c5c', subColor: '#6e6e7c', route: '/tickets/not-started' },
       { eyebrow: 'Active workload', title: 'In progress', value: s.inProgress, sub: `${s.inProgressPercent}% of your tickets are moving`, color: '#d97706', subColor: '#6e6e7c', route: '/tickets/in-progress' },
       { eyebrow: 'Completed', title: 'Closed', value: s.closed, sub: `Average closure time is ${s.avgDaysToClose} days`, color: '#0f9f75', subColor: '#6e6e7c', route: '/tickets/closed' },
@@ -151,7 +150,7 @@ function DashboardPage() {
   }
 
   return (
-    <section className="page dashboard-page">
+    <section className="page dashboard-page requester-dashboard-page">
       <header className="page-header dashboard-header">
         <div>
           <div className="eyebrow">Dashboard</div>

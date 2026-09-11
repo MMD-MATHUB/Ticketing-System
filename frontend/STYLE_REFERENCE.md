@@ -12,6 +12,7 @@ This document is the shared visual reference for the Requester, Processing, and 
   - Requester: `/dashboard`, `/tickets/*`, `/new-ticket`, `/search`
   - Processing: `/processing`
   - Analysis: `/analysis`
+  - Shared component gallery: `/style-reference`
 
 The three application surfaces use the shared shell and `App.css`. Authentication styles are intentionally separate and should not be copied into application pages.
 
@@ -44,7 +45,7 @@ The interface is a quiet operational tool:
 | Tertiary text | `#707084` | Descriptions and subtitles |
 | Quiet text | `#8a8a99` | Eyebrows, empty states, optional labels |
 | Focus/selection fill | `#f3f3fb` | Action menu hover and comment bubbles |
-| Success | `#16a34a` / `#0f9f75` | Refresh success and completed metrics |
+| Success | `#16a34a` / `#0f9f75` | Completed metrics and positive outcomes |
 | Warning | `#d97706` / `#b45309` | In-progress states and processing accent |
 | Error | `#dc2626` / `#c33` | Validation and error messages |
 | Chart track | `#ececf3` | Bar chart background |
@@ -194,10 +195,13 @@ Use `.search` for the standard search control:
 - White background
 - Border: `1px solid #dcdce6`
 - Radius: `16px`
+- Standard max width: `620px`.
 - Input has no own border and uses `14px` horizontal padding.
 - Submit button is purple, `112px` wide, and keeps the right `16px` radius.
 
-The dashboard uses `.dashboard-search` with a `38px` height and a compact `92px` search button.
+The Requester dashboard uses `.dashboard-search` with a `38px` height and a compact `92px` search button. The Analysis dashboard uses `.analysis-dashboard-search` with the same visual treatment and a `760px` max width so its wider dashboard layout does not make the rounded corners feel oversized.
+
+Keep the search radius at `16px` across both dashboard applications; widen the control before changing the radius.
 
 ### Form Fields
 
@@ -206,6 +210,20 @@ The dashboard uses `.dashboard-search` with a `38px` height and a compact `92px`
 - Use existing input/select styles rather than adding a local border or radius.
 - Optional labels use `.optional-label` and `#8a8a99`.
 - Searchable dropdowns use `.searchable-select`, `.searchable-select-options`, and role attributes for accessibility.
+- When a value is selected, `.searchable-select-clear` displays a gray `×` beside the purple arrow. It clears the value without opening the list.
+- The clear control keeps an accessible button hit area and is vertically centered with `.searchable-select-arrow`.
+
+## User Access Profiles
+
+Login access is defined by the persisted `UserType` and controls which application cards and API policies are available:
+
+| User type | Applications |
+| --- | --- |
+| Requester | Requester only |
+| Team member | Analysis and Processing |
+| Admin | Requester, Analysis, and Processing |
+
+The application chooser displays Admin applications in this order: Requester, Analysis, Processing. The demo credentials are shown on the login page and use the shared development password.
 
 ## Tables
 
@@ -250,6 +268,20 @@ Use `.materials-table-wrap` and `.materials-table` for the ticket wizard materia
 
 Do not create a second table treatment for Processing or Analysis. Compose their data inside the existing panel/table patterns.
 
+### Selectable Assignment Table
+
+The Analysis Not Started page adds selection and assignment without changing the base table treatment:
+
+- Use native checkbox semantics with the custom `.analysis-ticket-page tbody input[type='checkbox']` styling.
+- Empty checkbox: `20px` rounded square with a light gray border.
+- Selected checkbox: purple `#584cb9` fill with a centered rounded white check.
+- Center the checkbox in the Select column.
+- Show `Select all` and `Assign` only after at least one ticket is selected.
+- Keep the assignment controls in the same row as the compact filters.
+- Assignment changes selected tickets from `NotStarted` to `InProgress` and publishes a live update.
+
+Each selected ticket creates one persisted Analysis task per plant/material combination. Task numbers use `SMD-TSK-...` and are unique per ticket, plant, and material. The Re-analyse and My Analysis Tasks tables expose a dedicated Task number column.
+
 ## Dashboard Metrics And Charts
 
 ### KPI Cards
@@ -276,6 +308,26 @@ Use `.bar-row`, `.bar`, `.fill`, `.plant-row`, and `.accent`.
 - For plant rows, use the `4px` pill-shaped `.accent` marker.
 
 These patterns are shared by the Dashboard and Analysis app. Only the data and labels should change.
+
+### Processed Today Switcher
+
+The Analysis Processed Today page uses the Requester segmented-tab component:
+
+```jsx
+<div className="ticket-status-tabs" role="tablist">
+  <button className="active">Tickets <span className="badge">6</span></button>
+  <button>Tasks <span className="badge">0</span></button>
+</div>
+```
+
+- Tickets is selected by default.
+- The tab sits beside the page title on desktop and wraps naturally on mobile.
+- Counts represent today’s processed tickets and today’s created Analysis tasks.
+- The Tasks view uses task number, ticket, plant, material, title, and created-on columns.
+
+### Cancellation Tabs
+
+Analysis cancellation views reuse `.ticket-status-tabs` with `Cancellation requests` and `Cancelled tickets`. The first tab displays resolved tickets with the visible status `Cancellation requested`; the second displays cancelled tickets with status `Cancelled`.
 
 ## Timeline And Comments
 

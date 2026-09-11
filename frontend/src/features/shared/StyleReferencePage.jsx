@@ -26,6 +26,8 @@ export function StyleReferencePage() {
   const [messages, setMessages] = useState(timelineMessages)
   const [showErrorToast, setShowErrorToast] = useState(true)
   const [activeTicketStatus, setActiveTicketStatus] = useState('closed')
+  const [processedMode, setProcessedMode] = useState('tickets')
+  const [selectedAssignmentRows, setSelectedAssignmentRows] = useState([])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(true)
   const [showRequesterModal, setShowRequesterModal] = useState(false)
   const [referenceRequester, setReferenceRequester] = useState('')
@@ -119,6 +121,14 @@ export function StyleReferencePage() {
         </section>
 
         <section className="panel style-reference-section">
+          <div className="panel-title">Processed Today</div>
+          <div className="ticket-status-tabs" role="tablist" aria-label="Processed today reference">
+            <button type="button" role="tab" aria-selected={processedMode === 'tickets'} className={processedMode === 'tickets' ? 'active' : ''} onClick={() => setProcessedMode('tickets')}>Tickets <span className="badge">6</span></button>
+            <button type="button" role="tab" aria-selected={processedMode === 'tasks'} className={processedMode === 'tasks' ? 'active' : ''} onClick={() => setProcessedMode('tasks')}>Tasks <span className="badge">0</span></button>
+          </div>
+        </section>
+
+        <section className="panel style-reference-section">
           <div className="panel-title">Mobile navigation menu</div>
           <div className="style-reference-mobile-shell">
             <div className="style-reference-mobile-topbar">
@@ -204,6 +214,22 @@ export function StyleReferencePage() {
               <tr><td>SMD-TKT-2409020001</td><td>Demo User</td><td>Site B</td><td>In progress</td><td>08/09/2026</td></tr>
               <tr><td>SMD-TKT-2409010004</td><td>Support team</td><td>Site A</td><td>Closed</td><td>04/09/2026</td></tr>
             </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel style-reference-section">
+        <div className="panel-title">Selectable assignment table</div>
+        <div className="style-reference-assignment-actions">
+          {selectedAssignmentRows.length > 0 && <><button type="button" className="secondary-button" onClick={() => setSelectedAssignmentRows([])}>Deselect all</button><button type="button" className="primary-button" onClick={() => setSelectedAssignmentRows([])}>Assign</button></>}
+        </div>
+        <div className="table-wrap style-reference-table-wrap">
+          <table>
+            <thead><tr><th>Select</th><th>Ticket</th><th>Plant</th><th>Status</th></tr></thead>
+            <tbody>{['SMD-TKT-2409100019', 'SMD-TKT-2409020002'].map((ticket, index) => <tr key={ticket}>
+              <td><input type="checkbox" checked={selectedAssignmentRows.includes(ticket)} onChange={() => setSelectedAssignmentRows((current) => current.includes(ticket) ? current.filter((item) => item !== ticket) : [...current, ticket])} aria-label={`Select ${ticket}`} /></td>
+              <td>{ticket}</td><td>{index ? '15S1 - Morocco 534T' : '26S1 - Mauritania 551W'}</td><td>Not started</td>
+            </tr>)}</tbody>
           </table>
         </div>
       </section>

@@ -73,7 +73,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 11px 12px;
-  border-radius: 8px;
+  border-radius: 16px;
   color: #666678;
   text-decoration: none;
   font-size: 14px;
@@ -321,11 +321,11 @@
   display: flex;
   grid-column: span 2;
   width: 100%;
-  max-width: 500px;
+  max-width: 620px;
   height: 42px;
   background: #fff;
   border: 1px solid #dcdce6;
-  border-radius: 16px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -416,7 +416,7 @@
 
 .analysis-dashboard-search {
   grid-column: auto;
-  max-width: 620px;
+  max-width: 760px;
   margin: 8px 0 4px;
 }
 
@@ -636,6 +636,10 @@
   max-width: none;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
+}
+
+.requester-dashboard-page .dashboard-kpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .dashboard-kpis.analysis-dashboard-kpis {
@@ -2206,6 +2210,14 @@ tbody tr:hover {
 
 .style-reference-table-wrap {
   margin-top: 2px;
+}
+
+.style-reference-assignment-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 0;
+  margin-bottom: 10px;
 }
 
 .style-reference-metrics {
