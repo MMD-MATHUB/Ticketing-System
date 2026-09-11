@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
-import { Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { LoginPage } from './features/authentication/pages/LoginPage'
 import { ApplicationSelectionPage } from './features/authentication/pages/ApplicationSelectionPage'
 import { ApplicationRoute } from './shared/routing/ApplicationRoute'
@@ -22,6 +22,21 @@ const API_BASE_URL = '/api'
 function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    const appName = location.pathname.startsWith('/analysis')
+      ? 'Analysis'
+      : location.pathname.startsWith('/processing')
+        ? 'Processing'
+        : location.pathname.startsWith('/choose-app')
+          ? 'Choose application'
+          : location.pathname === '/login'
+            ? 'Sign in'
+            : 'Requester'
+
+    document.title = `${appName} | Ticketing System`
+  }, [location.pathname])
 
   useEffect(() => {
     if (!isAuthenticated) {
