@@ -77,7 +77,7 @@ export function AnalysisPage() {
     ['Re-analyse Tasks', getAnalysisTickets(analysisTickets, 're-analyse-tasks').length, 'Tickets needing another review', '#584cb9', '/analysis?view=re-analyse-tasks'],
     ['Pending Handler Action', getAnalysisTickets(analysisTickets, 'pending-handler-action').length, `${getShare(analysisTickets, 'pending-handler-action')}% waiting for handler input`, '#d97706', '/analysis?view=pending-handler-action'],
     ['Processed Today', getAnalysisTickets(analysisTickets, 'processed-today').length, 'Completed during this day', '#0f9f75', '/analysis?view=processed-today'],
-    ['Cancellation Requests/Cancelled tickets', getAnalysisTickets(analysisTickets, 'cancelled').length, 'Closed or awaiting cancellation', '#b85c5c', '/analysis?view=cancelled'],
+    ['Cancellation Requests/Cancelled tickets', `${analysisTickets.filter((ticket) => ticket.status === 'Resolved').length} | ${analysisTickets.filter((ticket) => ticket.status === 'Cancelled').length}`, 'Cancellation requests | Cancelled tickets', '#b85c5c', '/analysis?view=cancelled'],
   ]
 
   if (view) {
@@ -146,6 +146,8 @@ function AnalysisTicketPage({ view }) {
   const [textFilter, setTextFilter] = useState('')
   const [selectedTickets, setSelectedTickets] = useState([])
   const [assigning, setAssigning] = useState(false)
+  const [processedMode, setProcessedMode] = useState('tickets')
+  const [cancellationMode, setCancellationMode] = useState('closed')
 
   const loadTickets = useCallback(() => {
     let active = true
@@ -170,8 +172,15 @@ function AnalysisTicketPage({ view }) {
   }, [loadTickets])
 
   const viewConfig = analysisViewConfig[view] || { title: 'Analysis tickets', description: 'Analysis work queue', matches: () => true }
+  const isProcessedToday = view === 'processed-today'
+  const today = new Date().toDateString()
+  const processedTasks = analysisTasks.filter((task) => new Date(task.createdAt).toDateString() === today)
 
-  const scopedTickets = useMemo(() => getAnalysisTickets(tickets, view), [tickets, view])
+  const scopedTickets = useMemo(() => {
+    const analysisTickets = getAnalysisTickets(tickets, view)
+    if (view !== 'cancelled') return analysisTickets
+    return analysisTickets.filter((ticket) => cancellationMode === 'closed' ? ticket.status === 'Resolved' : ticket.status === 'Cancelled')
+  }, [tickets, view, cancellationMode])
   const plants = [...new Set(scopedTickets.map((ticket) => ticket.plantName).filter(Boolean).sort())]
   const ticketNumbers = [...new Set(scopedTickets.map((ticket) => ticket.ticketNumber).filter(Boolean))]
   const filteredTickets = scopedTickets.filter((ticket) => {
@@ -188,12 +197,23 @@ function AnalysisTicketPage({ view }) {
       return rightDate - leftDate
     })
     : filteredTickets
+  const visibleTasks = processedTasks.filter((task) => {
+    const searchable = [task.taskNumber, task.ticketNumber, task.title, task.plantName, task.materialNumber].join(' ').toLowerCase()
+    return (!plantFilter || task.plantName === plantFilter)
+      && (!ticketFilter || task.ticketNumber === ticketFilter)
+      && (!textFilter || searchable.includes(textFilter.trim().toLowerCase()))
+  })
+  const processedPlantOptions = [...new Set(processedMode === 'tasks' ? processedTasks.map((task) => task.plantName).filter(Boolean) : plants)]
+  const processedTicketOptions = [...new Set(processedMode === 'tasks' ? processedTasks.map((task) => task.ticketNumber).filter(Boolean) : ticketNumbers)]
   const taskNumbersByTicket = new Map(analysisTasks.reduce((entries, task) => {
     const current = entries.get(task.ticketNumber) || []
     entries.set(task.ticketNumber, [...current, task.taskNumber])
     return entries
   }, new Map()))
   const showTaskNumber = view === 're-analyse-tasks' || view === 'my-analysis-tasks'
+  const displayTicketStatus = (ticket) => view === 'cancelled' && cancellationMode === 'closed'
+    ? 'Cancellation requested'
+    : prettyStatus(ticket.status)
   const getTaskNumbers = (ticket) => {
     const taskNumbers = taskNumbersByTicket.get(ticket.ticketNumber) || []
     if (taskNumbers.length) return taskNumbers.join(', ')
@@ -231,6 +251,14 @@ function AnalysisTicketPage({ view }) {
           <div className="ticket-title-row">
             <h1>{viewConfig.title}</h1>
             <span className="analysis-app-tag">Analysis</span>
+            {view === 'cancelled' && <div className="ticket-status-tabs" role="tablist" aria-label="Closed and cancelled tickets">
+              <button type="button" role="tab" aria-selected={cancellationMode === 'closed'} className={cancellationMode === 'closed' ? 'active' : ''} onClick={() => setCancellationMode('closed')}>Cancellation requests</button>
+              <button type="button" role="tab" aria-selected={cancellationMode === 'cancelled'} className={cancellationMode === 'cancelled' ? 'active' : ''} onClick={() => setCancellationMode('cancelled')}>Cancelled tickets</button>
+            </div>}
+            {isProcessedToday && <div className="ticket-status-tabs analysis-processed-tabs" role="tablist" aria-label="Processed today view">
+              <button type="button" role="tab" aria-selected={processedMode === 'tickets'} className={processedMode === 'tickets' ? 'active' : ''} onClick={() => setProcessedMode('tickets')}>Tickets <span className="badge">{filteredTickets.length}</span></button>
+              <button type="button" role="tab" aria-selected={processedMode === 'tasks'} className={processedMode === 'tasks' ? 'active' : ''} onClick={() => setProcessedMode('tasks')}>Tasks <span className="badge">{processedTasks.length}</span></button>
+            </div>}
           </div>
           <p className="ticket-page-subtitle">{viewConfig.description}</p>
         </div>
@@ -238,18 +266,18 @@ function AnalysisTicketPage({ view }) {
 
       <div className="panel table-card ticket-table-card">
         <div className={`filters${isAssignable && selectedTickets.length > 0 ? ' analysis-assignment-filters' : ''}`}>
-          <label><span>Plant</span><SearchableSelect value={plantFilter} onChange={setPlantFilter} options={plants.map((plant) => ({ value: plant, label: plant }))} placeholder="Search plants" /></label>
-          <label><span>Ticket</span><SearchableSelect value={ticketFilter} onChange={setTicketFilter} options={ticketNumbers.map((number) => ({ value: number, label: number }))} placeholder="Search tickets" /></label>
+          <label><span>Plant</span><SearchableSelect value={plantFilter} onChange={setPlantFilter} options={processedPlantOptions.map((plant) => ({ value: plant, label: plant }))} placeholder="Search plants" /></label>
+          <label><span>Ticket</span><SearchableSelect value={ticketFilter} onChange={setTicketFilter} options={processedTicketOptions.map((number) => ({ value: number, label: number }))} placeholder="Search tickets" /></label>
           <label><span>Search</span><input value={textFilter} onChange={(event) => setTextFilter(event.target.value)} placeholder="Search analysis tickets" /></label>
           {isAssignable && selectedTickets.length > 0 && <div className="analysis-assignment-actions"><button type="button" className="secondary-button" onClick={toggleAllVisible}>{allVisibleSelected ? 'Deselect all' : 'Select all'}</button><button type="button" className="primary-button" disabled={assigning} onClick={assignToMe}>{assigning ? 'Assigning…' : 'Assign'}</button></div>}
         </div>
         <div className="table-wrap">
-          {visibleTickets.length ? (
+          {(processedMode === 'tasks' ? visibleTasks.length : visibleTickets.length) ? (
             <table>
-              <thead><tr>{isAssignable && <th>Select</th>}{showTaskNumber && <th>Task number</th>}<th>Ticket</th><th>Created on</th><th>Ticket Type</th><th>Plant</th><th>Status</th><th>Materials</th><th>Ticket Reason</th><th>Site/Base/Windfarm name</th><th>Platform/Turbine number</th><th>Sourcing Country</th><th>Description</th><th>Modified on</th><th>Is Escalated</th></tr></thead>
+              {processedMode === 'tasks' ? <><thead><tr><th>Task number</th><th>Ticket</th><th>Plant</th><th>Material</th><th>Title</th><th>Created on</th></tr></thead><tbody>{visibleTasks.map((task) => <tr key={task.taskNumber}><td>{task.taskNumber}</td><td>{task.ticketNumber}</td><td>{task.plantName}</td><td>{task.materialNumber}</td><td>{task.title}</td><td>{new Date(task.createdAt).toLocaleString()}</td></tr>)}</tbody></> : <><thead><tr>{isAssignable && <th>Select</th>}{showTaskNumber && <th>Task number</th>}<th>Ticket</th><th>Created on</th><th>Ticket Type</th><th>Plant</th><th>Status</th><th>Materials</th><th>Ticket Reason</th><th>Site/Base/Windfarm name</th><th>Platform/Turbine number</th><th>Sourcing Country</th><th>Description</th><th>Modified on</th><th>Is Escalated</th></tr></thead>
               <tbody>{visibleTickets.map((ticket) => <tr key={ticket.ticketNumber} onClick={() => { if (!isAssignable) window.location.href = `/tickets/${ticket.ticketNumber}` }}>
-                {isAssignable && <td><input type="checkbox" checked={selectedTickets.includes(ticket.ticketNumber)} onChange={() => toggleTicket(ticket.ticketNumber)} onClick={(event) => event.stopPropagation()} aria-label={`Select ${ticket.ticketNumber}`} /></td>}{showTaskNumber && <td>{getTaskNumbers(ticket)}</td>}<td>{ticket.ticketNumber}</td><td>{new Date(ticket.createdAt).toLocaleString()}</td><td>{ticket.ticketType}</td><td>{ticket.plantName}</td><td>{prettyStatus(ticket.status)}</td><td>{getMaterialsValue(ticket)}</td><td>{ticket.title}</td><td>{ticket.siteName || '—'}</td><td>{ticket.equipmentNumber || '—'}</td><td>{getSourcingCountry(ticket)}</td><td>{truncateText(ticket.description || '—', 60)}</td><td>{new Date(ticket.updatedAt).toLocaleString()}</td><td>{getEscalationValue(ticket)}</td>
-              </tr>)}</tbody>
+                {isAssignable && <td><input type="checkbox" checked={selectedTickets.includes(ticket.ticketNumber)} onChange={() => toggleTicket(ticket.ticketNumber)} onClick={(event) => event.stopPropagation()} aria-label={`Select ${ticket.ticketNumber}`} /></td>}{showTaskNumber && <td>{getTaskNumbers(ticket)}</td>}<td>{ticket.ticketNumber}</td><td>{new Date(ticket.createdAt).toLocaleString()}</td><td>{ticket.ticketType}</td><td>{ticket.plantName}</td><td>{displayTicketStatus(ticket)}</td><td>{getMaterialsValue(ticket)}</td><td>{ticket.title}</td><td>{ticket.siteName || '—'}</td><td>{ticket.equipmentNumber || '—'}</td><td>{getSourcingCountry(ticket)}</td><td>{truncateText(ticket.description || '—', 60)}</td><td>{new Date(ticket.updatedAt).toLocaleString()}</td><td>{getEscalationValue(ticket)}</td>
+              </tr>)}</tbody></>}
             </table>
           ) : <div className="empty">No tickets found.</div>}
         </div>

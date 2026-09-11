@@ -46,6 +46,17 @@ export function SearchableSelect({ value, onChange, options, placeholder, requir
         aria-autocomplete="list"
         required={required && !value}
       />
+      {selectedOption && <button
+        type="button"
+        className="searchable-select-clear"
+        aria-label={`Clear ${selectedOption.label}`}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => {
+          onChange('')
+          setQuery('')
+          setOpen(false)
+        }}
+      >×</button>}
       <span className="searchable-select-arrow" aria-hidden="true" />
       {open && <div className="searchable-select-options" role="listbox">{filteredOptions.length ? filteredOptions.map((option) => <button type="button" role="option" aria-selected={option.value === value} key={option.value} onMouseDown={(event) => event.preventDefault()} onClick={() => selectOption(option)}>{option.label}</button>) : <div className="searchable-select-empty">No matches found</div>}</div>}
     </div>

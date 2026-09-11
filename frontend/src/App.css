@@ -440,6 +440,18 @@
   font-weight: 700;
 }
 
+.analysis-processed-tabs {
+  margin-left: auto;
+}
+
+.analysis-ticket-page .ticket-title-row {
+  width: 100%;
+}
+
+.analysis-ticket-page .ticket-page-header > div {
+  width: 100%;
+}
+
 .analysis-dashboard-kpis {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   grid-template-rows: repeat(2, 150px);
@@ -952,7 +964,35 @@ select {
 }
 
 .searchable-select input {
-  padding-right: 46px;
+  padding-right: 70px;
+}
+
+.searchable-select-clear {
+  position: absolute;
+  top: 50%;
+  right: 36px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #666678;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.searchable-select-clear:hover,
+.searchable-select-clear:focus-visible {
+  background: #efedff;
+  color: #584cb9;
+  outline: 0;
 }
 
 .searchable-select-arrow {
@@ -961,9 +1001,9 @@ select {
   right: 16px;
   width: 14px;
   height: 9px;
-  transform: translateY(-50%);
+  transform: translateY(calc(-50% + 2px));
   pointer-events: none;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1.5 1.5l5.5 5.5 5.5-5.5' fill='none' stroke='%23666678' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1.5 1.5l5.5 5.5 5.5-5.5' fill='none' stroke='%23584cb9' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 .searchable-select-options {
@@ -2554,6 +2594,10 @@ tbody tr:hover {
   .style-reference-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .analysis-processed-tabs {
+    margin-left: 0;
   }
 
   .style-palette-grid,
