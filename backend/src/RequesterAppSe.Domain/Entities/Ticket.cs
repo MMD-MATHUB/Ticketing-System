@@ -19,4 +19,5 @@ public class Ticket
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public int PlantId { get; set; }
     public Plant? Plant { get; set; }
+    public List<TicketComment> Comments { get; set; } = new();
 }

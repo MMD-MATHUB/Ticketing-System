@@ -824,10 +824,26 @@ function TicketDetailPage() {
             <div className="comment-author">Requester</div>
             <div className="comment-text">{ticket.description}</div>
           </div>
+          {(ticket.comments || []).map((c) => (
+            <div className="comment-bubble" key={c.id}>
+              <div className="comment-author">{prettyLabel(c.role)}</div>
+              <div className="comment-text">{c.message}</div>
+            </div>
+          ))}
         </div>
 
         <div className="comment-box">
-          <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Comment" />
+          <input
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                sendComment()
+              }
+            }}
+            placeholder="Comment"
+          />
           <button type="button" onClick={sendComment}>Send</button>
         </div>
       </div>

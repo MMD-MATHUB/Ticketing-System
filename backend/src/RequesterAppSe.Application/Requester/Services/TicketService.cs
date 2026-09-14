@@ -131,11 +131,13 @@ public class TicketService
         var ticket = await _ticketRepository.GetByTicketNumberAsync(ticketNumber)
             ?? throw new InvalidOperationException("Ticket not found.");
 
-        ticket.UpdatedAt = DateTime.UtcNow;
-        if (string.IsNullOrWhiteSpace(ticket.Description))
+        ticket.Comments.Add(new TicketComment
         {
-            ticket.Description = message;
-        }
+            Role = role,
+            Message = message,
+            CreatedAt = DateTime.UtcNow
+        });
+        ticket.UpdatedAt = DateTime.UtcNow;
 
         await _ticketRepository.UpdateAsync(ticket);
         return MapToDto(ticket);
@@ -201,7 +203,11 @@ public class TicketService
             ticket.Status.ToString(),
             ticket.Plant?.Name ?? string.Empty,
             ticket.CreatedAt,
-            ticket.UpdatedAt);
+            ticket.UpdatedAt,
+            ticket.Comments
+                .OrderBy(c => c.CreatedAt)
+                .Select(c => new CommentDto(c.Id, c.Role, c.Message, c.CreatedAt))
+                .ToList());
     }
 
     private static string GenerateTicketNumber()
