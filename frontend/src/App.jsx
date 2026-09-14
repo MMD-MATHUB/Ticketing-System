@@ -15,6 +15,7 @@ import { CLOSED_CANCELLED_TABS, prettyStatus } from './features/requester/ticket
 import { AppShell } from './app/AppShell'
 import apiClient from './api/apiClient'
 import { subscribeToLiveUpdates } from './shared/liveUpdates'
+import { Button, Panel, PanelSubtitle, PanelTitle, ActionMenu, ActionMenuTrigger, ActionMenuList, ActionMenuItem, ModalBackdrop, ModalCard, ModalClose, ModalActions, Timeline, CommentBubble, CommentBox, KpiCard } from './shared/components/ui'
 import './App.css'
 
 const API_BASE_URL = '/api'
@@ -142,11 +143,11 @@ function DashboardPage() {
   }, [dashboard])
 
   if (loading) {
-    return <section className="page"><div className="panel state-panel">Loading dashboard...</div></section>
+    return <section className="page"><Panel className="state-panel">Loading dashboard...</Panel></section>
   }
 
   if (error) {
-    return <section className="page"><div className="panel state-panel">{error}</div></section>
+    return <section className="page"><Panel className="state-panel">{error}</Panel></section>
   }
 
   return (
@@ -173,35 +174,35 @@ function DashboardPage() {
 
       <div className="kpis dashboard-kpis">
         {cards.map((card) => (
-          <article key={card.title} className="card clickable dashboard-kpi" onClick={() => navigate(card.route)}>
+          <KpiCard key={card.title} className="h-[148px]" onClick={() => navigate(card.route)}>
             <div className="eyebrow">{card.eyebrow}</div>
-            <h3>{card.title}</h3>
-            <div className="value" style={{ color: card.color }}>{card.value}</div>
-            <p style={{ color: card.subColor }}>{card.sub}</p>
-          </article>
+            <h3 className="mt-[7px] mb-2.5 text-base leading-[1.2] min-[1800px]:text-lg">{card.title}</h3>
+            <div className="text-4xl leading-none font-bold min-[1800px]:text-[44px]" style={{ color: card.color }}>{card.value}</div>
+            <p className="mt-auto max-w-full text-[13px] leading-[1.4] min-[1800px]:text-sm max-[640px]:overflow-hidden max-[640px]:text-ellipsis max-[640px]:whitespace-nowrap max-[640px]:text-[11px]" style={{ color: card.subColor }}>{card.sub}</p>
+          </KpiCard>
         ))}
       </div>
 
       <div className="grid dashboard-grid">
-        <section className="panel large dashboard-panel recent-panel">
+        <Panel as="section" className="large dashboard-panel recent-panel">
           <div className="panel-heading">
             <div>
-              <div className="panel-title">Recent tickets</div>
-              <div className="panel-subtitle">Your latest submitted requests</div>
+              <PanelTitle className="!mb-[5px]">Recent tickets</PanelTitle>
+              <PanelSubtitle>Your latest submitted requests</PanelSubtitle>
             </div>
-            <button type="button" className="text-button" onClick={() => navigate('/tickets/recent')}>View all</button>
+            <Button variant="text" onClick={() => navigate('/tickets/recent')}>View all</Button>
           </div>
           <div className="recent-ticket-list">
             {dashboard.recentTickets.map((ticket) => (
               <LinkRow key={ticket.ticketNumber} ticket={ticket} />
             ))}
           </div>
-        </section>
+        </Panel>
 
         <div className="stack dashboard-insights">
-          <section className="panel dashboard-panel">
-            <div className="panel-title">Open tickets by priority</div>
-            <div className="panel-subtitle">Where your open work is concentrated</div>
+          <Panel as="section" className="dashboard-panel">
+            <PanelTitle>Open tickets by priority</PanelTitle>
+            <PanelSubtitle>Where your open work is concentrated</PanelSubtitle>
             <div className="dashboard-insight-list">
               {dashboard.openByPriority.map((item) => (
                 <div key={item.label} className="bar-row">
@@ -211,11 +212,11 @@ function DashboardPage() {
                 </div>
               ))}
             </div>
-          </section>
+          </Panel>
 
-          <section className="panel dashboard-panel">
-            <div className="panel-title">Open tickets by plant</div>
-            <div className="panel-subtitle">Requests grouped by location</div>
+          <Panel as="section" className="dashboard-panel">
+            <PanelTitle>Open tickets by plant</PanelTitle>
+            <PanelSubtitle>Requests grouped by location</PanelSubtitle>
             <div className="dashboard-insight-list">
               {dashboard.openByPlant.map((item) => (
                 <div key={item.label} className="bar-row plant-row">
@@ -225,7 +226,7 @@ function DashboardPage() {
                 </div>
               ))}
             </div>
-          </section>
+          </Panel>
         </div>
       </div>
 
@@ -429,7 +430,7 @@ function NewTicketPage() {
   }
 
   return (
-    <section className="page form-page new-ticket-page">
+    <section className="page content-start gap-7 pt-3 pb-4 box-border">
       <header className="page-header compact">
         <div>
           <div className="eyebrow">New ticket</div>
@@ -437,18 +438,33 @@ function NewTicketPage() {
         </div>
       </header>
 
-      <ol className="wizard-steps" aria-label="Ticket creation progress">
-        {['Add details', 'Add materials', 'Add description', 'Review & Submit'].map((label, index) => (
-          <li key={label} className={step === index + 1 ? 'active' : step > index + 1 ? 'complete' : ''}>
-            <span className="wizard-step-circle">{step > index + 1 ? '✓' : index + 1}</span>
-            <span className="wizard-step-label">{label}</span>
-          </li>
-        ))}
+      <ol className="flex gap-0 m-0 p-0 list-none max-[640px]:gap-1" aria-label="Ticket creation progress">
+        {['Add details', 'Add materials', 'Add description', 'Review & Submit'].map((label, index, all) => {
+          const state = step === index + 1 ? 'active' : step > index + 1 ? 'complete' : ''
+          const hasConnector = index !== all.length - 1
+          return (
+            <li
+              key={label}
+              className={`relative flex-1 flex flex-col items-center gap-1.5 text-[#18181b] text-center ${hasConnector ? `after:content-[''] after:absolute after:top-[21px] after:left-[calc(50%+24px)] after:w-[calc(100%-48px)] after:h-1 after:bg-[#cfd5d8] max-[640px]:after:top-[18px] max-[640px]:after:left-[calc(50%+20px)] max-[640px]:after:w-[calc(100%-40px)] ${state === 'complete' ? 'after:bg-brand' : ''}` : ''}`}
+            >
+              <span
+                className={`relative z-[1] grid place-items-center w-11 h-11 border-[3px] rounded-full text-lg font-bold max-[640px]:w-[38px] max-[640px]:h-[38px] max-[640px]:text-sm ${
+                  state === 'active' ? 'border-brand bg-white text-brand'
+                  : state === 'complete' ? 'border-brand bg-brand text-white'
+                  : 'border-[#cfd5d8] bg-page text-[#18181b]'
+                }`}
+              >
+                {step > index + 1 ? '✓' : index + 1}
+              </span>
+              <span className="text-sm font-semibold leading-[1.25] max-[640px]:text-[10px]">{label}</span>
+            </li>
+          )
+        })}
       </ol>
 
-      <form className="panel form-card ticket-wizard" onSubmit={submit}>
+      <Panel as="form" className="grid gap-5" onSubmit={submit}>
         {step === 1 ? (
-          <div className="form-grid">
+          <div className="grid grid-cols-2 gap-[18px]">
             <label><span>Plant *</span><SearchableSelect value={form.plantCode} onChange={(value) => updateForm('plantCode', value)} options={plantOptions} placeholder="Search plants" required /></label>
             <label><span>Sourcing Warehouse *</span><SearchableSelect value={form.sourcingWarehouse} onChange={(value) => updateForm('sourcingWarehouse', value)} options={warehouseOptions} placeholder="Search warehouses" required /></label>
             <label><span>Request type *</span><SearchableSelect value={form.requestType} onChange={(value) => updateForm('requestType', value)} options={requestTypeOptions} placeholder="Search request types" required /></label>
@@ -457,42 +473,42 @@ function NewTicketPage() {
             <label><span>Platform / Turbine number *</span><SearchableSelect value={form.equipmentNumber} onChange={(value) => updateForm('equipmentNumber', value)} options={platformOptions} placeholder="Search platforms" required /></label>
             <label><span>Are you raising the ticket for another customer? *</span><select value={form.raisingForAnotherCustomer} onChange={(event) => updateForm('raisingForAnotherCustomer', event.target.value)} required><option>No</option><option>Yes</option></select></label>
             {form.raisingForAnotherCustomer === 'Yes' && <label><span>Please specify the customer name/email *</span><input value={form.customer} onChange={(event) => updateForm('customer', event.target.value)} required /></label>}
-            <div className="full-width requester-field"><div className="field-label">Additional requester <span className="optional-label">(optional)</span></div><button type="button" className="secondary-button" onClick={() => setShowRequesterDialog(true)}>Add</button>{selectedRequesters.length > 0 && <div className="selected-requester">{selectedRequesters.join(', ')}</div>}</div>
+            <div className="col-span-full flex items-center flex-wrap gap-x-3.5 gap-y-2.5"><div className="field-label w-full mb-0">Additional requester <span className="text-muted font-normal">(optional)</span></div><Button variant="secondary" onClick={() => setShowRequesterDialog(true)}>Add</Button>{selectedRequesters.length > 0 && <div className="text-[#445877] text-[0.9rem]">{selectedRequesters.join(', ')}</div>}</div>
           </div>
         ) : step === 2 ? (
-          <div className="materials-step">
-            <div className="materials-toolbar"><button type="button" className="primary-button" onClick={() => setShowMaterialsDialog(true)}>Add Materials</button>{materials.length > 0 && <button type="button" className="secondary-button" onClick={() => setMaterials([])}>Clear all</button>}</div>
-            <div className="materials-table-wrap"><table className="materials-table"><thead><tr><th>No.</th><th>Material number</th><th>Quantity</th><th>Action</th></tr></thead><tbody>{materials.map((material, index) => <tr key={`${material.materialNumber}-${index}`}><td>{index + 1}.</td><td>{material.materialNumber}</td><td>{material.quantity}</td><td><button type="button" className="table-action" onClick={() => removeMaterial(material.materialNumber)} aria-label={`Remove ${material.materialNumber}`}>Remove</button></td></tr>)}{materials.length === 0 && <tr><td colSpan="4" className="materials-empty">No materials added yet.</td></tr>}</tbody></table></div>
-            <p className="materials-hint">Add up to 50 materials. Enter one material number and quantity per line.</p>
+          <div className="grid gap-[26px]">
+            <div className="flex items-center justify-between gap-3 mb-5"><Button variant="primary" onClick={() => setShowMaterialsDialog(true)}>Add Materials</Button>{materials.length > 0 && <Button variant="secondary" onClick={() => setMaterials([])}>Clear all</Button>}</div>
+            <div className="overflow-x-auto min-h-[260px] border border-border rounded-[10px]"><table className="min-w-[620px]"><thead><tr><th className="px-3.5 py-[11px] bg-[#f1f1f2] border-t-0 text-[13px] w-16">No.</th><th className="px-3.5 py-[11px] bg-[#f1f1f2] border-t-0 text-[13px]">Material number</th><th className="px-3.5 py-[11px] bg-[#f1f1f2] border-t-0 text-[13px]">Quantity</th><th className="px-3.5 py-[11px] bg-[#f1f1f2] border-t-0 text-[13px] w-[120px] text-center">Action</th></tr></thead><tbody>{materials.map((material, index) => <tr key={`${material.materialNumber}-${index}`}><td className="px-3.5 py-[11px] text-[13px] w-16">{index + 1}.</td><td className="px-3.5 py-[11px] text-[13px]">{material.materialNumber}</td><td className="px-3.5 py-[11px] text-[13px]">{material.quantity}</td><td className="px-3.5 py-[11px] text-[13px] w-[120px] text-center"><button type="button" className="border-0 bg-transparent text-brand cursor-pointer" onClick={() => removeMaterial(material.materialNumber)} aria-label={`Remove ${material.materialNumber}`}>Remove</button></td></tr>)}{materials.length === 0 && <tr><td colSpan="4" className="h-[220px] text-center align-middle text-muted">No materials added yet.</td></tr>}</tbody></table></div>
+            <p className="mt-2.5 text-muted text-xs">Add up to 50 materials. Enter one material number and quantity per line.</p>
           </div>
         ) : step === 3 ? (
-          <div className="description-step">
-            <label className="full-width"><span>Describe the request *</span><textarea rows="8" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the issue or request" required /></label>
-            <div className="attachments-field">
+          <div className="grid gap-3">
+            <label className="col-span-full"><span>Describe the request *</span><textarea rows="8" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the issue or request" required /></label>
+            <div className="grid gap-3">
               <div className="field-label">Attachments</div>
-              <p className="attachments-empty">{attachments.length ? `${attachments.length} file${attachments.length === 1 ? '' : 's'} attached.` : 'There is nothing attached.'}</p>
-              <label className="attachment-upload"><span>Attach file</span><input type="file" multiple onChange={(event) => setAttachments((current) => [...current, ...Array.from(event.target.files || [])])} /></label>
-              {attachments.length > 0 && <ul className="attachment-list">{attachments.map((file, index) => <li key={`${file.name}-${index}`}><span>{file.name}</span><button type="button" onClick={() => setAttachments((current) => current.filter((_, fileIndex) => fileIndex !== index))}>Remove</button></li>)}</ul>}
+              <p className="m-0 pl-6 text-muted text-sm">{attachments.length ? `${attachments.length} file${attachments.length === 1 ? '' : 's'} attached.` : 'There is nothing attached.'}</p>
+              <label className="inline-flex w-fit flex-row items-center gap-2 py-2 text-heading cursor-pointer before:content-['📎'] before:text-xl"><span>Attach file</span><input className="sr-only" type="file" multiple onChange={(event) => setAttachments((current) => [...current, ...Array.from(event.target.files || [])])} /></label>
+              {attachments.length > 0 && <ul className="grid gap-2 m-0 p-0 list-none">{attachments.map((file, index) => <li className="flex items-center justify-between gap-3 max-w-[600px] px-3 py-[9px] border border-border rounded-lg text-[#445877] text-[13px]" key={`${file.name}-${index}`}><span className="overflow-hidden text-ellipsis whitespace-nowrap">{file.name}</span><button type="button" className="flex-none border-0 bg-transparent text-brand cursor-pointer" onClick={() => setAttachments((current) => current.filter((_, fileIndex) => fileIndex !== index))}>Remove</button></li>)}</ul>}
             </div>
           </div>
         ) : (
-          <div className="review-step">
-            <div className="review-summary"><div><span className="review-summary-kicker">Final review</span><p>Check the information below before submitting your ticket.</p></div></div>
-            <section className="review-section">
-              <div className="review-section-heading"><div><span className="review-section-step">Step 1</span><h2>Add details</h2></div><button type="button" className="review-edit-button" onClick={() => { setIsEditingReview(true); setStep(1) }}>Edit</button></div>
-              <div className="review-grid"><div><span>Plant</span><strong>{plantOptions.find((option) => option.value === form.plantCode)?.label || 'Not selected'}</strong></div><div><span>Sourcing warehouse</span><strong>{form.sourcingWarehouse}</strong></div><div><span>Request type</span><strong>{form.requestType}</strong></div><div><span>Reason</span><strong>{form.reason}</strong></div><div><span>Site / Base / Windfarm</span><strong>{form.siteName}</strong></div><div><span>Platform / Turbine</span><strong>{form.equipmentNumber}</strong></div><div><span>Another customer</span><strong>{form.raisingForAnotherCustomer}</strong></div>{form.raisingForAnotherCustomer === 'Yes' && <div><span>Customer</span><strong>{form.customer}</strong></div>}<div><span>Additional requesters</span><strong>{selectedRequesters.length ? selectedRequesters.join(', ') : 'None'}</strong></div></div>
+          <div className="grid gap-[18px] min-w-0">
+            <div className="flex items-start justify-between gap-[18px] pt-1 pb-[18px] border-b border-[#e7e7ee] max-[640px]:grid"><div><span className="block text-muted text-[11px] font-bold tracking-[0.08em] uppercase">Final review</span><p className="m-0 text-body text-[13px]">Check the information below before submitting your ticket.</p></div></div>
+            <section className="pt-[18px] pb-0.5 border-b border-[#e7e7ee]">
+              <div className="flex items-center justify-between gap-4 pb-3.5"><div><span className="block text-muted text-[11px] font-bold tracking-[0.08em] uppercase">Step 1</span><h2 className="inline-flex items-center gap-2 mt-1 text-heading text-base font-bold">Add details</h2></div><button type="button" className="border-0 border-b border-current py-0.5 bg-transparent text-brand text-xs font-bold cursor-pointer hover:text-[#3f3593]" onClick={() => { setIsEditingReview(true); setStep(1) }}>Edit</button></div>
+              <div className="grid grid-cols-3 gap-x-7 gap-y-4 pb-[18px] min-w-0 max-[640px]:grid-cols-1"><div><span className="block mb-1.5 text-body text-xs font-bold">Plant</span><strong className="text-heading text-sm font-medium [overflow-wrap:anywhere]">{plantOptions.find((option) => option.value === form.plantCode)?.label || 'Not selected'}</strong></div><div><span className="block mb-1.5 text-body text-xs font-bold">Sourcing warehouse</span><strong className="text-heading text-sm font-medium [overflow-wrap:anywhere]">{form.sourcingWarehouse}</strong></div><div><span className="block mb-1.5 text-body text-xs font-bold">Request type</span><strong className="text-heading text-sm font-medium [overflow-wrap:anywhere]">{form.requestType}</strong></div><div><span className="block mb-1.5 text-body text-xs font-bold">Reason</span><strong className="text-heading text-sm font-medium [overflow-wrap:anywhere]">{form.reason}</strong></div><div><span className="block mb-1.5 text-body text-xs font-bold">Site / Base / Windfarm</span><strong className="text-heading text-sm font-medium [overflow-wrap:anywhere]">{form.siteName}</strong></div><div><span className="block mb-1.5 text-body text-xs font-bold">Platform / Turbine</span><strong className="text-heading text-sm font-medium [overflow-wrap:anywhere]">{form.equipmentNumber}</strong></div><div><span className="block mb-1.5 text-body text-xs font-bold">Another customer</span><strong className="text-heading text-sm font-medium [overflow-wrap:anywhere]">{form.raisingForAnotherCustomer}</strong></div>{form.raisingForAnotherCustomer === 'Yes' && <div><span className="block mb-1.5 text-body text-xs font-bold">Customer</span><strong className="text-heading text-sm font-medium [overflow-wrap:anywhere]">{form.customer}</strong></div>}<div><span className="block mb-1.5 text-body text-xs font-bold">Additional requesters</span><strong className="text-heading text-sm font-medium [overflow-wrap:anywhere]">{selectedRequesters.length ? selectedRequesters.join(', ') : 'None'}</strong></div></div>
             </section>
-            <section className="review-section"><div className="review-section-heading"><div><span className="review-section-step">Step 2</span><h2>Add materials <span className="review-count">{materials.length}</span></h2></div><button type="button" className="review-edit-button" onClick={() => { setIsEditingReview(true); setStep(2) }}>Edit</button></div><div className="review-material-list">{materials.map((material, index) => <div key={`${material.materialNumber}-${index}`}><span>{index + 1}. {material.materialNumber}</span><strong>{material.quantity} {Number(material.quantity) === 1 ? 'unit' : 'units'}</strong></div>)}</div></section>
-            <section className="review-section"><div className="review-section-heading"><div><span className="review-section-step">Step 3</span><h2>Description &amp; attachments</h2></div><button type="button" className="review-edit-button" onClick={() => { setIsEditingReview(true); setStep(3) }}>Edit</button></div><div className="review-content-columns"><div><span className="review-field-label">Description</span><p className="review-description">{description}</p></div><div><span className="review-field-label">Attachments <span className="review-count">{attachments.length}</span></span><div className="review-attachment-list">{attachments.length ? attachments.map((file) => <span key={file.name}>{file.name}</span>) : <span className="review-muted">No attachments</span>}</div></div></div></section>
+            <section className="pt-[18px] pb-0.5 border-b border-[#e7e7ee]"><div className="flex items-center justify-between gap-4 pb-3.5"><div><span className="block text-muted text-[11px] font-bold tracking-[0.08em] uppercase">Step 2</span><h2 className="inline-flex items-center gap-2 mt-1 text-heading text-base font-bold">Add materials <span className="inline-grid min-w-[20px] h-5 px-1.5 place-items-center rounded-full bg-brand-pale-hover text-brand text-[11px]">{materials.length}</span></h2></div><button type="button" className="border-0 border-b border-current py-0.5 bg-transparent text-brand text-xs font-bold cursor-pointer hover:text-[#3f3593]" onClick={() => { setIsEditingReview(true); setStep(2) }}>Edit</button></div><div className="grid gap-0 w-full pb-4 border border-[#e7e7ee] rounded-[10px] overflow-hidden">{materials.map((material, index) => <div className="flex justify-between gap-5 px-4 py-3 border-b border-border-soft bg-[#fbfbfd] text-sm even:bg-white last:border-b-0" key={`${material.materialNumber}-${index}`}><span>{index + 1}. {material.materialNumber}</span><strong className="text-body font-medium">{material.quantity} {Number(material.quantity) === 1 ? 'unit' : 'units'}</strong></div>)}</div></section>
+            <section className="pt-[18px] pb-0.5 border-b border-[#e7e7ee]"><div className="flex items-center justify-between gap-4 pb-3.5"><div><span className="block text-muted text-[11px] font-bold tracking-[0.08em] uppercase">Step 3</span><h2 className="inline-flex items-center gap-2 mt-1 text-heading text-base font-bold">Description &amp; attachments</h2></div><button type="button" className="border-0 border-b border-current py-0.5 bg-transparent text-brand text-xs font-bold cursor-pointer hover:text-[#3f3593]" onClick={() => { setIsEditingReview(true); setStep(3) }}>Edit</button></div><div className="grid grid-cols-1 gap-5 pb-[18px] min-w-0"><div><span className="block text-muted text-[11px] font-bold tracking-[0.08em] uppercase">Description</span><p className="min-w-0 [overflow-wrap:anywhere] m-0 px-3 py-2.5 border-l-[3px] border-brand-pale text-heading text-sm leading-[1.5] whitespace-pre-wrap">{description}</p></div><div><span className="block text-muted text-[11px] font-bold tracking-[0.08em] uppercase">Attachments <span className="inline-grid min-w-[20px] h-5 px-1.5 place-items-center rounded-full bg-brand-pale-hover text-brand text-[11px]">{attachments.length}</span></span><div className="grid gap-1.5 mt-2.5">{attachments.length ? attachments.map((file) => <span className="overflow-hidden px-2.5 py-2 border border-[#e7e7ee] rounded-[7px] text-[#445877] text-[13px] text-ellipsis whitespace-nowrap" key={file.name}>{file.name}</span>) : <span className="text-muted">No attachments</span>}</div></div></div></section>
           </div>
         )}
 
-        {submitError && <div className="form-error" role="alert">{submitError}</div>}
-        <div className={`wizard-actions${step === 1 ? ' first-step' : ''}`}>{step > 1 && <button type="button" className="secondary-button" onClick={() => setStep((current) => current - 1)}>Previous</button>}<button type="submit" className="primary-button" disabled={step === 1 ? !isStepOneComplete : step === 2 ? !materials.length : step === 3 ? !description.trim() : submitting}>{submitting ? 'Creating…' : step === 4 ? 'Create ticket' : isEditingReview ? 'Go to submission' : 'Next'}</button></div>
-      </form>
+        {submitError && <div className="text-error text-[13px]" role="alert">{submitError}</div>}
+        <div className={`flex items-center gap-3 ${step === 1 ? 'justify-end' : 'justify-between'}`}>{step > 1 && <Button variant="secondary" onClick={() => setStep((current) => current - 1)}>Previous</Button>}<Button type="submit" variant="primary" disabled={step === 1 ? !isStepOneComplete : step === 2 ? !materials.length : step === 3 ? !description.trim() : submitting}>{submitting ? 'Creating…' : step === 4 ? 'Create ticket' : isEditingReview ? 'Go to submission' : 'Next'}</Button></div>
+      </Panel>
 
-      {showRequesterDialog && <div className="modal-backdrop" onClick={() => setShowRequesterDialog(false)}><div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="requester-dialog-title" onClick={(event) => event.stopPropagation()}><button type="button" className="modal-close" onClick={() => setShowRequesterDialog(false)} aria-label="Close">×</button><h2 id="requester-dialog-title">Add additional requester</h2><label><span>Company user</span><SearchableSelect value={requesterSelection} onChange={setRequesterSelection} options={companyUsers.filter((companyUser) => !selectedRequesters.some((requester) => requester.startsWith(companyUser.name))).map((companyUser) => ({ value: `${companyUser.name} (${companyUser.email})`, label: `${companyUser.name} | ${companyUser.email}` }))} placeholder="Search company users" /></label><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowRequesterDialog(false)}>Cancel</button><button type="button" className="primary-button" disabled={!requesterSelection} onClick={addRequester}>Confirm</button></div></div></div>}
-      {showMaterialsDialog && <div className="modal-backdrop" onClick={() => setShowMaterialsDialog(false)}><div className="modal-card materials-dialog" role="dialog" aria-modal="true" aria-labelledby="materials-dialog-title" onClick={(event) => event.stopPropagation()}><button type="button" className="modal-close" onClick={() => setShowMaterialsDialog(false)} aria-label="Close">×</button><h2 id="materials-dialog-title">Add Materials bulk</h2><p>Paste one material number and quantity per line.</p><textarea rows="8" value={materialInput} onChange={(event) => setMaterialInput(event.target.value)} placeholder={'A9B12312313 10\nA9B12312324 20'} autoFocus /><p className="materials-warning">* Please make sure to not add more than 50 materials in one ticket.</p><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowMaterialsDialog(false)}>Cancel</button><button type="button" className="primary-button" disabled={!materialInput.trim()} onClick={addMaterials}>Confirm</button></div></div></div>}
+      {showRequesterDialog && <ModalBackdrop onClick={() => setShowRequesterDialog(false)}><ModalCard role="dialog" aria-modal="true" aria-labelledby="requester-dialog-title" onClick={(event) => event.stopPropagation()}><ModalClose onClick={() => setShowRequesterDialog(false)} /><h2 id="requester-dialog-title" className="m-0 mr-9 mb-5 text-[21px]">Add additional requester</h2><label><span>Company user</span><SearchableSelect value={requesterSelection} onChange={setRequesterSelection} options={companyUsers.filter((companyUser) => !selectedRequesters.some((requester) => requester.startsWith(companyUser.name))).map((companyUser) => ({ value: `${companyUser.name} (${companyUser.email})`, label: `${companyUser.name} | ${companyUser.email}` }))} placeholder="Search company users" /></label><ModalActions><Button variant="secondary" onClick={() => setShowRequesterDialog(false)}>Cancel</Button><Button variant="primary" disabled={!requesterSelection} onClick={addRequester}>Confirm</Button></ModalActions></ModalCard></ModalBackdrop>}
+      {showMaterialsDialog && <ModalBackdrop onClick={() => setShowMaterialsDialog(false)}><ModalCard role="dialog" aria-modal="true" aria-labelledby="materials-dialog-title" onClick={(event) => event.stopPropagation()}><ModalClose onClick={() => setShowMaterialsDialog(false)} /><h2 id="materials-dialog-title" className="m-0 mr-9 mb-5 text-[21px]">Add Materials bulk</h2><p className="-mt-2.5 mb-3 text-body text-[13px]">Paste one material number and quantity per line.</p><textarea className="resize-y" rows="8" value={materialInput} onChange={(event) => setMaterialInput(event.target.value)} placeholder={'A9B12312313 10\nA9B12312324 20'} autoFocus /><p className="mt-2.5 text-body text-[13px]">* Please make sure to not add more than 50 materials in one ticket.</p><ModalActions><Button variant="secondary" onClick={() => setShowMaterialsDialog(false)}>Cancel</Button><Button variant="primary" disabled={!materialInput.trim()} onClick={addMaterials}>Confirm</Button></ModalActions></ModalCard></ModalBackdrop>}
     </section>
   )
 }
@@ -785,7 +801,7 @@ function TicketDetailPage() {
   }
 
   if (loading) {
-    return <section className="page"><div className="panel state-panel">Loading ticket...</div></section>
+    return <section className="page"><Panel className="state-panel">Loading ticket...</Panel></section>
   }
 
   if (error) {
@@ -798,7 +814,7 @@ function TicketDetailPage() {
               <h2 id="ticket-error-title">Ticket not found</h2>
               <p>{error}</p>
             </div>
-            <button type="button" className="primary-button" onClick={() => navigate('/dashboard')}>Back to dashboard</button>
+            <Button variant="primary" className="col-start-2 justify-self-start !px-[13px] !py-[9px] !text-[13px]" onClick={() => navigate('/dashboard')}>Back to dashboard</Button>
           </div>
         </div>
       </section>
@@ -814,24 +830,18 @@ function TicketDetailPage() {
           </button>
           <h1>{ticket.ticketNumber}</h1>
         </div>
-        <div className="action-menu" ref={actionMenuRef}>
-          <button
-            type="button"
-            className="small action-menu-trigger"
-            aria-expanded={actionMenuOpen}
-            aria-haspopup="menu"
-            onClick={() => setActionMenuOpen((open) => !open)}
-          >
-            Action <span className={`action-menu-chevron${actionMenuOpen ? ' is-open' : ''}`} aria-hidden="true" />
-          </button>
+        <ActionMenu ref={actionMenuRef}>
+          <ActionMenuTrigger open={actionMenuOpen} onClick={() => setActionMenuOpen((open) => !open)}>
+            Action
+          </ActionMenuTrigger>
           {actionMenuOpen && (
-            <div className="action-menu-list" role="menu">
+            <ActionMenuList>
               {['Action 1', 'Action 2', 'Action 3'].map((action) => (
-                <button key={action} type="button" role="menuitem" onClick={() => selectAction(action)}>{action}</button>
+                <ActionMenuItem key={action} onClick={() => selectAction(action)}>{action}</ActionMenuItem>
               ))}
-            </div>
+            </ActionMenuList>
           )}
-        </div>
+        </ActionMenu>
       </div>
 
       <div className="info-grid">
@@ -852,18 +862,18 @@ function TicketDetailPage() {
         <button type="button" className="active"><span className="timeline-tab-label">Timeline</span></button>
       </div>
 
-      <div className="panel detail-panel">
-        <div className="timeline-box" ref={timelineBoxRef}>
+      <Panel className="detail-panel">
+        <Timeline ref={timelineBoxRef}>
           {timelineComments.map((timelineComment, index) => (
-            <div className="comment-bubble" key={`${timelineComment.message}-${index}`}>
-              <div className="comment-author">{timelineComment.author}</div>
-              <div className="comment-text">{timelineComment.message}</div>
-            </div>
+            <CommentBubble author={timelineComment.author} key={`${timelineComment.message}-${index}`}>
+              {timelineComment.message}
+            </CommentBubble>
           ))}
-        </div>
+        </Timeline>
 
-        <div className="comment-box">
+        <CommentBox>
           <input
+            className="flex-1"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={(event) => {
@@ -874,9 +884,9 @@ function TicketDetailPage() {
             }}
             placeholder="Comment"
           />
-          <button type="button" onClick={sendComment}>Send</button>
-        </div>
-      </div>
+          <button type="button" className="w-24 border-0 rounded-xl bg-brand text-white font-semibold cursor-pointer" onClick={sendComment}>Send</button>
+        </CommentBox>
+      </Panel>
     </section>
   )
 }

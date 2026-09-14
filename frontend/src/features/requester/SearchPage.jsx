@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import apiClient from '../../api/apiClient'
 import { SearchableSelect } from './SearchableSelect'
+import { Panel } from '../../shared/components/ui'
 import { subscribeToLiveUpdates } from '../../shared/liveUpdates'
 import {
   API_BASE_URL,
@@ -95,7 +96,7 @@ export function SearchPage() {
         </div>
       </header>
 
-      <div className="panel table-card ticket-table-card requester-search-surface">
+      <Panel className="table-card ticket-table-card requester-search-surface">
         <div className="filter-grid requester-search-filters">
         <label>
           <span>Ticket</span>
@@ -163,7 +164,7 @@ export function SearchPage() {
             <div className="empty">No results found.</div>
           )}
         </div>
-      </div>
+      </Panel>
     </section>
   )
 }

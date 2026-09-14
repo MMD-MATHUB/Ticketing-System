@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { requesterNavigation } from '../requester/requesterNavigation'
 import { SearchableSelect } from '../requester/SearchableSelect'
+import { Avatar, Badge, Button, ColorSwatch, Panel, PanelSubtitle, PanelTitle, StatusText, Tab, TabGroup, ActionMenu, ActionMenuTrigger, ActionMenuList, ActionMenuItem, ModalBackdrop, ModalCard, ModalClose, ModalActions, Timeline, CommentBubble, CommentBox } from '../../shared/components/ui'
 
 const palette = [
-  { name: 'Primary purple', value: '#584cb9', className: 'style-swatch-purple' },
-  { name: 'Primary pale', value: '#efedff', className: 'style-swatch-pale' },
-  { name: 'Page background', value: '#f7f7fa', className: 'style-swatch-page' },
-  { name: 'Border', value: '#e4e4ed', className: 'style-swatch-border' },
-  { name: 'Secondary text', value: '#666678', className: 'style-swatch-secondary' },
-  { name: 'Success', value: '#0f9f75', className: 'style-swatch-success' },
-  { name: 'Warning', value: '#d97706', className: 'style-swatch-warning' },
-  { name: 'Error', value: '#dc2626', className: 'style-swatch-error' },
+  { name: 'Primary purple', value: '#584cb9', colorClassName: 'bg-brand' },
+  { name: 'Primary pale', value: '#efedff', colorClassName: 'bg-brand-pale' },
+  { name: 'Page background', value: '#f7f7fa', colorClassName: 'bg-page' },
+  { name: 'Border', value: '#e4e4ed', colorClassName: 'bg-border' },
+  { name: 'Secondary text', value: '#666678', colorClassName: 'bg-secondary' },
+  { name: 'Success', value: '#0f9f75', colorClassName: 'bg-success' },
+  { name: 'Warning', value: '#d97706', colorClassName: 'bg-warning' },
+  { name: 'Error', value: '#dc2626', colorClassName: 'bg-error' },
 ]
 
 const timelineMessages = [
@@ -51,142 +52,156 @@ export function StyleReferencePage() {
   }
 
   return (
-    <section className="page style-reference-page">
-      <header className="style-reference-header">
+    <section className="page max-w-[1180px] content-start">
+      <header className="flex flex-col items-start sm:flex-row sm:items-end justify-between gap-5">
         <div>
           <div className="eyebrow">Shared UI</div>
-          <h1>Component reference</h1>
-          <p>Live examples of the visual language shared by Requester, Processing, and Analysis.</p>
+          <h1 className="mt-2 text-[#18181b] text-[clamp(1.8rem,3vw,2.6rem)]">Component reference</h1>
+          <p className="mt-2 text-body">Live examples of the visual language shared by Requester, Processing, and Analysis.</p>
         </div>
-        <span className="style-reference-route">/style-reference</span>
+        <span className="px-2.5 py-1.5 rounded-lg bg-brand-pale text-brand text-xs font-bold">/style-reference</span>
       </header>
 
-      <section className="panel style-reference-section">
-        <div className="style-reference-section-heading">
+      <Panel as="section" className="min-w-0">
+        <div className="flex justify-between gap-4">
           <div>
-            <div className="panel-title">Colors</div>
-            <div className="panel-subtitle">Use the named palette values from the style reference.</div>
+            <PanelTitle>Colors</PanelTitle>
+            <PanelSubtitle>Use the named palette values from the style reference.</PanelSubtitle>
           </div>
         </div>
-        <div className="style-palette-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           {palette.map((color) => (
-            <div className="style-swatch" key={color.name}>
-              <span className={`style-swatch-color ${color.className}`} />
-              <strong>{color.name}</strong>
-              <code>{color.value}</code>
-            </div>
+            <ColorSwatch key={color.name} name={color.name} value={color.value} colorClassName={color.colorClassName} />
           ))}
         </div>
-      </section>
+      </Panel>
 
-      <div className="style-reference-grid">
-        <section className="panel style-reference-section">
-          <div className="panel-title">Buttons</div>
-          <div className="style-control-row">
-            <button type="button" className="primary-button">Primary action</button>
-            <button type="button" className="secondary-button">Secondary</button>
-            <button type="button" className="text-button">Text action</button>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 min-w-0">
+        <Panel as="section" className="min-w-0">
+          <PanelTitle>Buttons</PanelTitle>
+          <div className="flex items-center flex-wrap gap-3">
+            <Button variant="primary">Primary action</Button>
+            <Button variant="secondary">Secondary</Button>
+            <Button variant="text">Text action</Button>
           </div>
-          <div className="style-control-row style-reference-menu-row">
-            <div className="action-menu">
-              <button type="button" className="action-menu-trigger" aria-expanded={actionOpen} aria-haspopup="menu" onClick={() => setActionOpen((open) => !open)}>
-                {selectedAction} <span className={`action-menu-chevron${actionOpen ? ' is-open' : ''}`} aria-hidden="true" />
-              </button>
+          <div className="flex items-center flex-wrap gap-3 min-h-[74px] mt-4 pt-4 border-t border-border-soft">
+            <ActionMenu>
+              <ActionMenuTrigger open={actionOpen} onClick={() => setActionOpen((open) => !open)}>
+                {selectedAction}
+              </ActionMenuTrigger>
               {actionOpen && (
-                <div className="action-menu-list" role="menu">
+                <ActionMenuList>
                   {['Action 1', 'Action 2', 'Action 3'].map((action) => (
-                    <button key={action} type="button" role="menuitem" onClick={() => selectAction(action)}>{action}</button>
+                    <ActionMenuItem key={action} onClick={() => selectAction(action)}>{action}</ActionMenuItem>
                   ))}
-                </div>
+                </ActionMenuList>
               )}
-            </div>
+            </ActionMenu>
             <button type="button" className="back-button" aria-label="Back">
               <span className="back-chevron" aria-hidden="true" />
             </button>
           </div>
-        </section>
+        </Panel>
 
-        <section className="panel style-reference-section">
-          <div className="panel-title">Ticket status tabs</div>
-          <div className="ticket-status-tabs" role="tablist" aria-label="Ticket state reference">
+        <Panel as="section" className="min-w-0">
+          <PanelTitle>Ticket status tabs</PanelTitle>
+          <TabGroup aria-label="Ticket state reference">
             {[
               ['closed', 'Closed tickets'],
               ['cancelled', 'Cancelled tickets'],
             ].map(([key, label]) => (
-              <button key={key} type="button" role="tab" aria-selected={activeTicketStatus === key} className={activeTicketStatus === key ? 'active' : ''} onClick={() => setActiveTicketStatus(key)}>
+              <Tab key={key} active={activeTicketStatus === key} onClick={() => setActiveTicketStatus(key)}>
                 {label}
-              </button>
+              </Tab>
             ))}
-          </div>
-        </section>
+          </TabGroup>
+        </Panel>
 
-        <section className="panel style-reference-section">
-          <div className="panel-title">Processed Today</div>
-          <div className="ticket-status-tabs" role="tablist" aria-label="Processed today reference">
-            <button type="button" role="tab" aria-selected={processedMode === 'tickets'} className={processedMode === 'tickets' ? 'active' : ''} onClick={() => setProcessedMode('tickets')}>Tickets <span className="badge">6</span></button>
-            <button type="button" role="tab" aria-selected={processedMode === 'tasks'} className={processedMode === 'tasks' ? 'active' : ''} onClick={() => setProcessedMode('tasks')}>Tasks <span className="badge">0</span></button>
-          </div>
-        </section>
+        <Panel as="section" className="min-w-0">
+          <PanelTitle>Processed Today</PanelTitle>
+          <TabGroup aria-label="Processed today reference">
+            <Tab active={processedMode === 'tickets'} onClick={() => setProcessedMode('tickets')}>Tickets <Badge>6</Badge></Tab>
+            <Tab active={processedMode === 'tasks'} onClick={() => setProcessedMode('tasks')}>Tasks <Badge>0</Badge></Tab>
+          </TabGroup>
+        </Panel>
 
-        <section className="panel style-reference-section">
-          <div className="panel-title">Mobile navigation menu</div>
-          <div className="style-reference-mobile-shell">
-            <div className="style-reference-mobile-topbar">
-              <div className="style-reference-mobile-brand"><span className="avatar">DS</span><strong>Requester</strong></div>
-              <button type="button" className="style-reference-mobile-toggle" aria-expanded={mobileMenuOpen} aria-label="Toggle mobile navigation" onClick={() => setMobileMenuOpen((open) => !open)}>
-                <span /><span /><span />
+        <Panel as="section" className="min-w-0">
+          <PanelTitle>Mobile navigation menu</PanelTitle>
+          <div className="overflow-hidden border border-border rounded-2xl bg-page">
+            <div className="flex items-center justify-between min-h-16 px-3.5 py-2.5 bg-white border-b border-[#e7e7ee]">
+              <div className="flex items-center gap-2.5 text-[#18181b]">
+                <Avatar className="!w-[34px] !h-[34px] !text-xs">DS</Avatar>
+                <strong>Requester</strong>
+              </div>
+              <button
+                type="button"
+                className="grid gap-1 w-[42px] h-[42px] p-2.5 place-content-center border border-[#dcdce6] rounded-[10px] bg-white text-brand cursor-pointer"
+                aria-expanded={mobileMenuOpen}
+                aria-label="Toggle mobile navigation"
+                onClick={() => setMobileMenuOpen((open) => !open)}
+              >
+                <span className="block w-[19px] h-0.5 rounded-sm bg-current" />
+                <span className="block w-[19px] h-0.5 rounded-sm bg-current" />
+                <span className="block w-[19px] h-0.5 rounded-sm bg-current" />
               </button>
             </div>
             {mobileMenuOpen && (
-              <div className="style-reference-mobile-panel">
-                <nav className="nav" aria-label="Mobile navigation reference">
+              <div className="mx-3.5 mb-3.5 pt-3 bg-white border border-border rounded-2xl shadow-[0_18px_36px_rgba(36,35,67,0.12)]">
+                <nav className="nav px-2.5" aria-label="Mobile navigation reference">
                   {requesterNavigation.slice(0, 6).map((item) => (
-                    <button key={item.to} type="button" className={item.label === 'Pending my reply' ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>
+                    <button
+                      key={item.to}
+                      type="button"
+                      className={`flex items-center justify-between w-full px-3 py-[11px] border-0 rounded-2xl bg-transparent text-secondary text-sm text-left cursor-pointer hover:bg-brand-pale-hover hover:text-brand ${item.label === 'Pending my reply' ? '!bg-brand-pale-hover !text-brand' : ''}`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
                       {item.label}
-                      {item.label === 'Pending my reply' && <span className="badge">2</span>}
+                      {item.label === 'Pending my reply' && <Badge>2</Badge>}
                     </button>
                   ))}
                 </nav>
-                <div className="nav-footer"><button type="button" className="logout-button" onClick={() => setMobileMenuOpen(false)}>Logout</button></div>
+                <div className="mx-2.5 mt-2.5 pt-2.5 pb-2.5 border-t border-[#e7e7ee]">
+                  <button type="button" className="logout-button" onClick={() => setMobileMenuOpen(false)}>Logout</button>
+                </div>
               </div>
             )}
           </div>
-        </section>
+        </Panel>
 
-        <section className="panel style-reference-section">
-          <div className="panel-title">Inputs and states</div>
-          <div className="style-reference-form">
+        <Panel as="section" className="min-w-0">
+          <PanelTitle>Inputs and states</PanelTitle>
+          <div className="grid gap-2">
             <label className="field-label" htmlFor="reference-search">Search tickets</label>
-            <div className="search style-reference-search">
+            <div className="search !max-w-none">
               <input id="reference-search" placeholder="Search tickets" />
               <button type="button">Search</button>
             </div>
             <label className="field-label" htmlFor="reference-select">Requester</label>
-            <select id="reference-select" defaultValue="Diana Stratan">
+            <select id="reference-select" className="w-full h-[42px] px-3" defaultValue="Diana Stratan">
               <option>Diana Stratan</option>
               <option>Support team</option>
             </select>
-            <div className="style-state-row">
-              <span className="badge">2</span>
-              <span className="style-status-success">Completed</span>
-              <span className="style-status-warning">In progress</span>
-              <span className="style-status-error">Error</span>
+            <div className="flex items-center flex-wrap gap-x-3.5 gap-y-2 mt-2">
+              <Badge>2</Badge>
+              <StatusText tone="success">Completed</StatusText>
+              <StatusText tone="warning">In progress</StatusText>
+              <StatusText tone="error">Error</StatusText>
             </div>
           </div>
-        </section>
+        </Panel>
       </div>
 
-      <section className="panel style-reference-section">
-        <div className="panel-title">Text search and dropdown</div>
-        <div className="style-reference-filter-grid">
-          <label>
+      <Panel as="section" className="min-w-0">
+        <PanelTitle>Text search and dropdown</PanelTitle>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="grid gap-2 min-w-0">
             <span className="field-label">Search tickets</span>
-            <div className="search style-reference-search">
+            <div className="search !max-w-none">
               <input value={referenceTextSearch} onChange={(event) => setReferenceTextSearch(event.target.value)} placeholder="Search tickets" />
               <button type="button">Search</button>
             </div>
           </label>
-          <label>
+          <label className="grid gap-2 min-w-0">
             <span className="field-label">Plant</span>
             <SearchableSelect
               value={referencePlant}
@@ -200,11 +215,11 @@ export function StyleReferencePage() {
             />
           </label>
         </div>
-      </section>
+      </Panel>
 
-      <section className="panel style-reference-section">
-        <div className="panel-title">Tables</div>
-        <div className="table-wrap style-reference-table-wrap">
+      <Panel as="section" className="min-w-0">
+        <PanelTitle>Tables</PanelTitle>
+        <div className="table-wrap mt-0.5">
           <table>
             <thead>
               <tr><th>Ticket</th><th>Requester</th><th>Plant</th><th>Status</th><th>Created on</th></tr>
@@ -216,14 +231,19 @@ export function StyleReferencePage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </Panel>
 
-      <section className="panel style-reference-section">
-        <div className="panel-title">Selectable assignment table</div>
-        <div className="style-reference-assignment-actions">
-          {selectedAssignmentRows.length > 0 && <><button type="button" className="secondary-button" onClick={() => setSelectedAssignmentRows([])}>Deselect all</button><button type="button" className="primary-button" onClick={() => setSelectedAssignmentRows([])}>Assign</button></>}
+      <Panel as="section" className="min-w-0">
+        <PanelTitle>Selectable assignment table</PanelTitle>
+        <div className="flex justify-end gap-2 mb-2.5">
+          {selectedAssignmentRows.length > 0 && (
+            <>
+              <Button variant="secondary" onClick={() => setSelectedAssignmentRows([])}>Deselect all</Button>
+              <Button variant="primary" onClick={() => setSelectedAssignmentRows([])}>Assign</Button>
+            </>
+          )}
         </div>
-        <div className="table-wrap style-reference-table-wrap">
+        <div className="table-wrap mt-0.5">
           <table>
             <thead><tr><th>Select</th><th>Ticket</th><th>Plant</th><th>Status</th></tr></thead>
             <tbody>{['SMD-TKT-2409100019', 'SMD-TKT-2409020002'].map((ticket, index) => <tr key={ticket}>
@@ -232,68 +252,75 @@ export function StyleReferencePage() {
             </tr>)}</tbody>
           </table>
         </div>
-      </section>
+      </Panel>
 
-      <section className="panel style-reference-section">
-        <div className="panel-title">Attachments</div>
-        <div className="attachments-field">
+      <Panel as="section" className="min-w-0">
+        <PanelTitle>Attachments</PanelTitle>
+        <div className="grid gap-3">
           <div className="field-label">Attachments</div>
-          <p className="attachments-empty">{referenceAttachments.length} files attached.</p>
-          <label className="attachment-upload"><span>Attach file</span><input type="file" multiple onChange={(event) => setReferenceAttachments((current) => [...current, ...Array.from(event.target.files || [])])} /></label>
-          <ul className="attachment-list">
+          <p className="m-0 pl-6 text-muted text-sm">{referenceAttachments.length} files attached.</p>
+          <label className="inline-flex w-fit flex-row items-center gap-2 py-2 text-heading cursor-pointer before:content-['📎'] before:text-xl"><span>Attach file</span><input className="sr-only" type="file" multiple onChange={(event) => setReferenceAttachments((current) => [...current, ...Array.from(event.target.files || [])])} /></label>
+          <ul className="grid gap-2 m-0 p-0 list-none">
             {referenceAttachments.map((file, index) => (
-              <li key={`${file.name}-${index}`}>
-                <span>{file.name}</span>
-                <button type="button" onClick={() => setReferenceAttachments((current) => current.filter((_, fileIndex) => fileIndex !== index))}>Remove</button>
+              <li className="flex items-center justify-between gap-3 max-w-[600px] px-3 py-[9px] border border-border rounded-lg text-[#445877] text-[13px]" key={`${file.name}-${index}`}>
+                <span className="overflow-hidden text-ellipsis whitespace-nowrap">{file.name}</span>
+                <button type="button" className="flex-none border-0 bg-transparent text-brand cursor-pointer" onClick={() => setReferenceAttachments((current) => current.filter((_, fileIndex) => fileIndex !== index))}>Remove</button>
               </li>
             ))}
           </ul>
         </div>
-      </section>
+      </Panel>
 
-      <section className="panel style-reference-section">
-        <div className="panel-title">Modal and searchable select</div>
-        <button type="button" className="secondary-button" onClick={() => setShowRequesterModal(true)}>Add additional requester</button>
-      </section>
+      <Panel as="section" className="min-w-0">
+        <PanelTitle>Modal and searchable select</PanelTitle>
+        <Button variant="secondary" onClick={() => setShowRequesterModal(true)}>Add additional requester</Button>
+      </Panel>
 
-      <div className="style-reference-grid">
-        <section className="panel style-reference-section">
-          <div className="panel-title">Charts</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 min-w-0">
+        <Panel as="section" className="min-w-0">
+          <PanelTitle>Charts</PanelTitle>
           <div className="bar-row"><span className="label">High</span><div className="bar"><div className="fill" style={{ width: '82%' }} /></div><strong>12</strong></div>
           <div className="bar-row"><span className="label">Medium</span><div className="bar"><div className="fill" style={{ width: '58%', background: '#d97706' }} /></div><strong>8</strong></div>
           <div className="bar-row"><span className="label">Low</span><div className="bar"><div className="fill" style={{ width: '32%', background: '#0f9f75' }} /></div><strong>4</strong></div>
-        </section>
+        </Panel>
 
-        <section className="panel style-reference-section">
-          <div className="panel-title">Cards and metrics</div>
-          <div className="style-reference-metrics">
-            <article className="card dashboard-kpi"><div className="eyebrow">Overview</div><div className="value" style={{ color: '#584cb9' }}>24</div><p>Total tickets</p></article>
-            <article className="card dashboard-kpi"><div className="eyebrow">Completed</div><div className="value" style={{ color: '#0f9f75' }}>18</div><p>Closed tickets</p></article>
+        <Panel as="section" className="min-w-0">
+          <PanelTitle>Cards and metrics</PanelTitle>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Panel as="article" className="flex flex-col cursor-default min-h-[124px]">
+              <div className="eyebrow">Overview</div>
+              <div className="text-4xl leading-none font-bold" style={{ color: '#584cb9' }}>24</div>
+              <p className="mt-2.5 text-[13px] leading-[1.4]">Total tickets</p>
+            </Panel>
+            <Panel as="article" className="flex flex-col cursor-default min-h-[124px]">
+              <div className="eyebrow">Completed</div>
+              <div className="text-4xl leading-none font-bold" style={{ color: '#0f9f75' }}>18</div>
+              <p className="mt-2.5 text-[13px] leading-[1.4]">Closed tickets</p>
+            </Panel>
           </div>
-        </section>
+        </Panel>
       </div>
 
-      <section className="panel detail-panel style-reference-section style-reference-timeline">
-        <div className="panel-title">Timeline and scrolling</div>
-        <div className="timeline-box">
+      <Panel as="section" className="detail-panel min-w-0">
+        <PanelTitle className="!mb-3">Timeline and scrolling</PanelTitle>
+        <Timeline>
           {messages.map(([author, message], index) => (
-            <div className="comment-bubble" key={`${message}-${index}`}>
-              <div className="comment-author">{author}</div>
-              <div className="comment-text">{message}</div>
-            </div>
+            <CommentBubble author={author} key={`${message}-${index}`}>
+              {message}
+            </CommentBubble>
           ))}
-        </div>
-        <div className="comment-box">
-          <input value={comment} onChange={(event) => setComment(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); sendComment() } }} placeholder="Comment" />
-          <button type="button" onClick={sendComment}>Send</button>
-        </div>
-      </section>
+        </Timeline>
+        <CommentBox>
+          <input className="flex-1" value={comment} onChange={(event) => setComment(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); sendComment() } }} placeholder="Comment" />
+          <button type="button" className="w-24 border-0 rounded-xl bg-brand text-white font-semibold cursor-pointer" onClick={sendComment}>Send</button>
+        </CommentBox>
+      </Panel>
 
-      <section className="panel style-reference-section">
-        <div className="panel-title">Error toast</div>
-        <div className="style-reference-toast-stage">
+      <Panel as="section" className="min-w-0">
+        <PanelTitle>Error toast</PanelTitle>
+        <div className="grid min-h-28 place-items-center p-3.5 border border-dashed border-[#dcdce6] rounded-xl bg-page">
           {showErrorToast ? (
-            <div className="ticket-error-toast" role="alertdialog" aria-label="Ticket search result">
+            <div className="ticket-error-toast !w-[min(100%,620px)]" role="alertdialog" aria-label="Ticket search result">
               <div className="ticket-error-icon">!</div>
               <div className="toast-message">Ticket not found.</div>
               <button type="button" className="toast-close" aria-label="Close notification" onClick={() => setShowErrorToast(false)}>
@@ -301,18 +328,18 @@ export function StyleReferencePage() {
               </button>
             </div>
           ) : (
-            <button type="button" className="secondary-button" onClick={() => setShowErrorToast(true)}>Show error toast</button>
+            <Button variant="secondary" onClick={() => setShowErrorToast(true)}>Show error toast</Button>
           )}
         </div>
-      </section>
+      </Panel>
 
-      <div className="panel state-panel style-reference-state">Loading and empty states use this centered panel treatment.</div>
+      <div className="panel state-panel mb-5">Loading and empty states use this centered panel treatment.</div>
 
       {showRequesterModal && (
-        <div className="modal-backdrop" onClick={() => setShowRequesterModal(false)}>
-          <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="reference-requester-dialog-title" onClick={(event) => event.stopPropagation()}>
-            <button type="button" className="modal-close" onClick={() => setShowRequesterModal(false)} aria-label="Close">×</button>
-            <h2 id="reference-requester-dialog-title">Add additional requester</h2>
+        <ModalBackdrop onClick={() => setShowRequesterModal(false)}>
+          <ModalCard role="dialog" aria-modal="true" aria-labelledby="reference-requester-dialog-title" onClick={(event) => event.stopPropagation()}>
+            <ModalClose onClick={() => setShowRequesterModal(false)} />
+            <h2 id="reference-requester-dialog-title" className="m-0 mr-9 mb-5 text-[21px]">Add additional requester</h2>
             <label>
               <span>Company user</span>
               <SearchableSelect
@@ -325,12 +352,12 @@ export function StyleReferencePage() {
                 placeholder="Search company users"
               />
             </label>
-            <div className="modal-actions">
-              <button type="button" className="secondary-button" onClick={() => setShowRequesterModal(false)}>Cancel</button>
-              <button type="button" className="primary-button" disabled={!referenceRequester} onClick={() => setShowRequesterModal(false)}>Confirm</button>
-            </div>
-          </div>
-        </div>
+            <ModalActions>
+              <Button variant="secondary" onClick={() => setShowRequesterModal(false)}>Cancel</Button>
+              <Button variant="primary" disabled={!referenceRequester} onClick={() => setShowRequesterModal(false)}>Confirm</Button>
+            </ModalActions>
+          </ModalCard>
+        </ModalBackdrop>
       )}
     </section>
   )

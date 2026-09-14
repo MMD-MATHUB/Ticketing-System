@@ -1,3 +1,23 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Tokens mirrored from STYLE_REFERENCE.md so Tailwind utilities match the existing app pixel-for-pixel. */
+  --color-brand: #584cb9;
+  --color-brand-hover: #3f3593;
+  --color-brand-pale: #efedff;
+  --color-brand-pale-hover: #f2f0ff;
+  --color-page: #f7f7fa;
+  --color-border: #e4e4ed;
+  --color-border-soft: #f0f0f5;
+  --color-secondary: #666678;
+  --color-muted: #8a8a99;
+  --color-body: #707084;
+  --color-heading: #22222d;
+  --color-success: #0f9f75;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+}
+
 html, body, #root {
   margin: 0;
   min-height: 100%;

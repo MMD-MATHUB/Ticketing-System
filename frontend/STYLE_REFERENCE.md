@@ -16,6 +16,16 @@ This document is the shared visual reference for the Requester, Processing, and 
 
 The three application surfaces use the shared shell and `App.css`. Authentication styles are intentionally separate and should not be copied into application pages.
 
+## Tailwind Migration (in progress)
+
+New UI work should use Tailwind utility classes instead of adding new rules to `App.css`.
+
+- Tailwind v4 is wired up via `@tailwindcss/vite` in `vite.config.js`.
+- Design tokens (colors) are defined once in `src/index.css` under `@theme` and mirror the palette below exactly (`--color-brand`, `--color-brand-pale`, `--color-page`, `--color-border`, `--color-secondary`, `--color-muted`, `--color-body`, `--color-heading`, `--color-success`, `--color-warning`, `--color-error`), so utilities like `bg-brand` or `text-success` always match the values in this document.
+- Reusable primitives (`Button`, `Panel`, `PanelTitle`, `PanelSubtitle`, `Badge`, `Avatar`, `StatusText`, `ColorSwatch`) live in `src/shared/components/ui.jsx` and are built with Tailwind classes. Prefer these over the raw `.primary-button` / `.secondary-button` / `.panel` / `.card` / `.badge` CSS classes in new code.
+- `src/features/shared/StyleReferencePage.jsx` (`/style-reference`) has been fully migrated to Tailwind + these components and is the reference implementation for the pattern.
+- Migration is incremental: classes still used by pages that haven't been converted yet (e.g. `.ticket-status-tabs`, `.action-menu*`, `.modal-*`, `.comment-*`, `.dashboard-kpi`, `.bar-row`, `.back-button`, `.ticket-error-toast`, `.attachments-field`) remain in `App.css` until every consumer is migrated, to avoid breaking pages mid-migration. Once a page fully switches to Tailwind, remove the CSS it no longer needs.
+
 ## Design Direction
 
 The interface is a quiet operational tool:
@@ -98,6 +108,10 @@ The desktop sidebar is sticky. At `900px` and below, the sidebar becomes a top b
 Use `.primary-button` for the main action in a section:
 
 ```jsx
+import { Button } from '../../shared/components/ui'
+
+<Button variant="primary">Create ticket</Button>
+// legacy pages not yet migrated may still use:
 <button type="button" className="primary-button">Create ticket</button>
 ```
 
@@ -109,7 +123,7 @@ Use `.primary-button` for the main action in a section:
 - Weight: `600`
 - Cursor: pointer
 
-Use `.primary-button.small` for compact header actions. Disabled primary buttons use `opacity: 0.5` and `cursor: not-allowed`.
+Use `<Button variant="primary" size="small">` (or `.primary-button.small` on legacy pages) for compact header actions. Disabled primary buttons use `opacity: 0.5` and `cursor: not-allowed` (handled automatically by `Button`'s `disabled` prop).
 
 ### Secondary / Outlined Button
 

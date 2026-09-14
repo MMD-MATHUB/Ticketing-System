@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import apiClient from '../../api/apiClient'
 import { applications } from '../../shared/applications/applicationCatalog'
 import { subscribeToLiveUpdates } from '../../shared/liveUpdates'
+import { Panel, PanelTitle, KpiCard } from '../../shared/components/ui'
 
 export function ProcessingPage() {
   const application = applications.processing
@@ -24,20 +25,20 @@ export function ProcessingPage() {
       <div className="eyebrow">Application</div>
       <h1>{application.name}</h1>
       <p>{application.description}</p>
-      {error && <div className="panel state-panel">{error}</div>}
+      {error && <Panel className="state-panel">{error}</Panel>}
       {queue && (
         <>
           <div className="kpis">
-            <article className="card"><div className="eyebrow">Queue</div><h3>Open tickets</h3><div className="value">{queue.totalOpen}</div></article>
-            <article className="card"><div className="eyebrow">New work</div><h3>Not started</h3><div className="value">{queue.notStarted}</div></article>
-            <article className="card"><div className="eyebrow">Active</div><h3>In progress</h3><div className="value">{queue.inProgress}</div></article>
+            <KpiCard><div className="eyebrow">Queue</div><h3 className="mt-[7px] mb-2.5 text-base leading-[1.2]">Open tickets</h3><div className="text-4xl leading-none font-bold">{queue.totalOpen}</div></KpiCard>
+            <KpiCard><div className="eyebrow">New work</div><h3 className="mt-[7px] mb-2.5 text-base leading-[1.2]">Not started</h3><div className="text-4xl leading-none font-bold">{queue.notStarted}</div></KpiCard>
+            <KpiCard><div className="eyebrow">Active</div><h3 className="mt-[7px] mb-2.5 text-base leading-[1.2]">In progress</h3><div className="text-4xl leading-none font-bold">{queue.inProgress}</div></KpiCard>
           </div>
-          <section className="panel table-card">
-            <div className="panel-title">Processing queue</div>
+          <Panel as="section" className="table-card">
+            <PanelTitle>Processing queue</PanelTitle>
             <div className="table-wrap"><table><thead><tr><th>Ticket</th><th>Title</th><th>Priority</th><th>Status</th></tr></thead><tbody>
               {queue.tickets.map((ticket) => <tr key={ticket.ticketNumber}><td>{ticket.ticketNumber}</td><td>{ticket.title}</td><td>{ticket.priority}</td><td>{ticket.status}</td></tr>)}
             </tbody></table></div>
-          </section>
+          </Panel>
         </>
       )}
     </section>

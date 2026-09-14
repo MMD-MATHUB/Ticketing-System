@@ -4,6 +4,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { logout } from '../store/authSlice'
 import { requesterNavigation } from '../features/requester/requesterNavigation'
 import { analysisNavigation } from '../features/analysis/analysisNavigation'
+import { Badge } from '../shared/components/ui'
 
 export function AppShell({ children }) {
   const user = useSelector((state) => state.auth.user)
@@ -66,7 +67,7 @@ export function AppShell({ children }) {
                 {navigation.map((item) => (
                   <NavLink key={item.to} to={item.to} onClick={() => setMenuOpen(false)} className={({ isActive }) => (isActive && (selectedApplication !== 'analysis' || location.search === new URL(item.to, window.location.origin).search)) ? 'active' : ''}>
                     {item.label === 'Cancellation Requests/Cancelled tickets' ? <span className="analysis-nav-multiline">Cancellation Requests/<br />Cancelled tickets</span> : item.label}
-                    {item.label === 'Pending my reply' && <span className="badge">2</span>}
+                    {item.label === 'Pending my reply' && <Badge>2</Badge>}
                   </NavLink>
                 ))}
               </nav>
@@ -83,7 +84,7 @@ export function AppShell({ children }) {
             {navigation.map((item) => (
               <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive && (selectedApplication !== 'analysis' || location.search === new URL(item.to, window.location.origin).search)) ? 'active' : ''}>
                 {item.label === 'Cancellation Requests/Cancelled tickets' ? <span className="analysis-nav-multiline">Cancellation Requests/<br />Cancelled tickets</span> : item.label}
-                {item.label === 'Pending my reply' && <span className="badge">2</span>}
+                {item.label === 'Pending my reply' && <Badge>2</Badge>}
               </NavLink>
             ))}
           </nav>

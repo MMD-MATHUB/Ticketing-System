@@ -4,6 +4,7 @@ import { applications } from '../../shared/applications/applicationCatalog'
 import { subscribeToLiveUpdates } from '../../shared/liveUpdates'
 import { SearchableSelect } from '../requester/SearchableSelect'
 import { getEscalationValue, getMaterialsValue, getSourcingCountry, matchesTicketView, prettyStatus, truncateText } from '../requester/ticketUtils'
+import { Badge, Button, Panel, PanelSubtitle, PanelTitle, Tab, TabGroup, KpiCard } from '../../shared/components/ui'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const analysisViewConfig = {
@@ -102,13 +103,13 @@ export function AnalysisPage() {
           <button type="submit">Search</button>
         </form>
       </div>
-      {error && <div className="panel state-panel">{error}</div>}
+      {error && <Panel className="state-panel">{error}</Panel>}
       {overview && (
         <>
           <div className="kpis dashboard-kpis analysis-dashboard-kpis">
             {cards.map(([title, value, sub, color, route]) => (
-              <article
-                className="card clickable analysis-dashboard-card"
+              <KpiCard
+                className="analysis-dashboard-card h-[150px]"
                 key={title}
                 role="link"
                 tabIndex="0"
@@ -121,15 +122,15 @@ export function AnalysisPage() {
                 }}
               >
                 <div className="eyebrow">Analysis</div>
-                <h3>{title === 'Cancellation Requests/Cancelled tickets' ? <>Cancellation Requests/<br />Cancelled tickets</> : title}</h3>
-                <div className="value" style={{ color }}>{value}</div>
-                <p className={title === 'Re-analyse Tasks' ? 'analysis-single-line-kpi' : ''}>{sub}</p>
-              </article>
+                <h3 className="min-h-[38px] mt-[7px] mb-2.5 text-[15px] leading-[1.2] whitespace-nowrap">{title === 'Cancellation Requests/Cancelled tickets' ? <>Cancellation Requests/<br />Cancelled tickets</> : title}</h3>
+                <div className="text-4xl leading-none font-bold" style={{ color }}>{value}</div>
+                <p className={`mt-auto min-h-[18px] max-w-full text-[#6e6e7c] text-[13px] leading-[1.4] [overflow-wrap:anywhere] line-clamp-2${title === 'Re-analyse Tasks' ? ' whitespace-nowrap' : ''}`}>{sub}</p>
+              </KpiCard>
             ))}
           </div>
           <div className="grid dashboard-grid">
-            <section className="panel"><div className="panel-title">Tickets by priority</div>{overview.byPriority.map((item) => <div className="bar-row" key={item.label}><span className="label">{item.label}</span><div className="bar"><div className="fill" style={{ width: `${Math.max((item.count / Math.max(...overview.byPriority.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div><strong>{item.count}</strong></div>)}</section>
-            <section className="panel"><div className="panel-title">Open tickets by plant</div><div className="panel-subtitle">Requests grouped by location</div>{overview.byPlant.map((item) => <div className="bar-row plant-row" key={item.label}><div className="plant-label"><span className="accent" /><span className="text">{item.label}</span></div><div className="bar"><div className="fill plant" style={{ width: `${Math.max((item.count / Math.max(...overview.byPlant.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div><strong className="plant-count">{item.count}</strong></div>)}</section>
+            <Panel as="section"><PanelTitle>Tickets by priority</PanelTitle>{overview.byPriority.map((item) => <div className="bar-row" key={item.label}><span className="label">{item.label}</span><div className="bar"><div className="fill" style={{ width: `${Math.max((item.count / Math.max(...overview.byPriority.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div><strong>{item.count}</strong></div>)}</Panel>
+            <Panel as="section"><PanelTitle>Open tickets by plant</PanelTitle><PanelSubtitle>Requests grouped by location</PanelSubtitle>{overview.byPlant.map((item) => <div className="bar-row plant-row" key={item.label}><div className="plant-label"><span className="accent" /><span className="text">{item.label}</span></div><div className="bar"><div className="fill plant" style={{ width: `${Math.max((item.count / Math.max(...overview.byPlant.map((entry) => entry.count), 1)) * 100, 12)}%` }} /></div><strong className="plant-count">{item.count}</strong></div>)}</Panel>
           </div>
         </>
       )}
@@ -241,7 +242,7 @@ function AnalysisTicketPage({ view }) {
     }
   }
 
-  if (loading) return <section className="page"><div className="panel state-panel">Loading analysis tickets...</div></section>
+  if (loading) return <section className="page"><Panel className="state-panel">Loading analysis tickets...</Panel></section>
 
   return (
     <section className="page ticket-list-page analysis-ticket-page">
@@ -251,25 +252,25 @@ function AnalysisTicketPage({ view }) {
           <div className="ticket-title-row">
             <h1>{viewConfig.title}</h1>
             <span className="analysis-app-tag">Analysis</span>
-            {view === 'cancelled' && <div className="ticket-status-tabs" role="tablist" aria-label="Closed and cancelled tickets">
-              <button type="button" role="tab" aria-selected={cancellationMode === 'closed'} className={cancellationMode === 'closed' ? 'active' : ''} onClick={() => setCancellationMode('closed')}>Cancellation requests</button>
-              <button type="button" role="tab" aria-selected={cancellationMode === 'cancelled'} className={cancellationMode === 'cancelled' ? 'active' : ''} onClick={() => setCancellationMode('cancelled')}>Cancelled tickets</button>
-            </div>}
-            {isProcessedToday && <div className="ticket-status-tabs analysis-processed-tabs" role="tablist" aria-label="Processed today view">
-              <button type="button" role="tab" aria-selected={processedMode === 'tickets'} className={processedMode === 'tickets' ? 'active' : ''} onClick={() => setProcessedMode('tickets')}>Tickets <span className="badge">{filteredTickets.length}</span></button>
-              <button type="button" role="tab" aria-selected={processedMode === 'tasks'} className={processedMode === 'tasks' ? 'active' : ''} onClick={() => setProcessedMode('tasks')}>Tasks <span className="badge">{processedTasks.length}</span></button>
-            </div>}
+            {view === 'cancelled' && <TabGroup className="mt-2" aria-label="Closed and cancelled tickets">
+              <Tab active={cancellationMode === 'closed'} onClick={() => setCancellationMode('closed')}>Cancellation requests</Tab>
+              <Tab active={cancellationMode === 'cancelled'} onClick={() => setCancellationMode('cancelled')}>Cancelled tickets</Tab>
+            </TabGroup>}
+            {isProcessedToday && <TabGroup className="mt-2 ml-auto" aria-label="Processed today view">
+              <Tab active={processedMode === 'tickets'} onClick={() => setProcessedMode('tickets')}>Tickets <Badge>{filteredTickets.length}</Badge></Tab>
+              <Tab active={processedMode === 'tasks'} onClick={() => setProcessedMode('tasks')}>Tasks <Badge>{processedTasks.length}</Badge></Tab>
+            </TabGroup>}
           </div>
           <p className="ticket-page-subtitle">{viewConfig.description}</p>
         </div>
       </header>
 
-      <div className="panel table-card ticket-table-card">
+      <Panel className="table-card ticket-table-card">
         <div className={`filters${isAssignable && selectedTickets.length > 0 ? ' analysis-assignment-filters' : ''}`}>
           <label><span>Plant</span><SearchableSelect value={plantFilter} onChange={setPlantFilter} options={processedPlantOptions.map((plant) => ({ value: plant, label: plant }))} placeholder="Search plants" /></label>
           <label><span>Ticket</span><SearchableSelect value={ticketFilter} onChange={setTicketFilter} options={processedTicketOptions.map((number) => ({ value: number, label: number }))} placeholder="Search tickets" /></label>
           <label><span>Search</span><input value={textFilter} onChange={(event) => setTextFilter(event.target.value)} placeholder="Search analysis tickets" /></label>
-          {isAssignable && selectedTickets.length > 0 && <div className="analysis-assignment-actions"><button type="button" className="secondary-button" onClick={toggleAllVisible}>{allVisibleSelected ? 'Deselect all' : 'Select all'}</button><button type="button" className="primary-button" disabled={assigning} onClick={assignToMe}>{assigning ? 'Assigning…' : 'Assign'}</button></div>}
+          {isAssignable && selectedTickets.length > 0 && <div className="analysis-assignment-actions"><Button variant="secondary" onClick={toggleAllVisible}>{allVisibleSelected ? 'Deselect all' : 'Select all'}</Button><Button variant="primary" disabled={assigning} onClick={assignToMe}>{assigning ? 'Assigning…' : 'Assign'}</Button></div>}
         </div>
         <div className="table-wrap">
           {(processedMode === 'tasks' ? visibleTasks.length : visibleTickets.length) ? (
@@ -281,7 +282,7 @@ function AnalysisTicketPage({ view }) {
             </table>
           ) : <div className="empty">No tickets found.</div>}
         </div>
-      </div>
+      </Panel>
     </section>
   )
 }

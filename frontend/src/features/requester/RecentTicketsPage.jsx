@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import apiClient from '../../api/apiClient'
 import { SearchableSelect } from './SearchableSelect'
+import { Panel } from '../../shared/components/ui'
 import {
   API_BASE_URL,
   getEscalationValue,
@@ -60,7 +61,7 @@ export function RecentTicketsPage() {
   const ticketFilterOptions = ticketNumbers.map((ticketNumber) => ({ value: ticketNumber, label: ticketNumber }))
 
   if (loading) {
-    return <section className="page"><div className="panel state-panel">Loading tickets...</div></section>
+    return <section className="page"><Panel className="state-panel">Loading tickets...</Panel></section>
   }
 
   return (
@@ -73,7 +74,7 @@ export function RecentTicketsPage() {
         </div>
       </header>
 
-      <div className="panel table-card ticket-table-card">
+      <Panel className="table-card ticket-table-card">
         <div className="filters">
           <SearchableSelect value={plantFilter} onChange={setPlantFilter} options={plantFilterOptions} placeholder="Search by plant" />
           <SearchableSelect value={ticketFilter} onChange={setTicketFilter} options={ticketFilterOptions} placeholder="Search by ticket" />
@@ -124,7 +125,7 @@ export function RecentTicketsPage() {
             <div className="empty">No tickets found.</div>
           )}
         </div>
-      </div>
+      </Panel>
     </section>
   )
 }

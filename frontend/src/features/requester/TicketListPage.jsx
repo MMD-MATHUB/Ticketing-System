@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import apiClient from '../../api/apiClient'
 import { SearchableSelect } from './SearchableSelect'
+import { Panel, Tab, TabGroup } from '../../shared/components/ui'
 import { subscribeToLiveUpdates } from '../../shared/liveUpdates'
 import {
   API_BASE_URL,
@@ -62,7 +63,7 @@ export function TicketListPage({ title, subtitle, view, tabs }) {
   const ticketNumbers = [...new Set(tabTickets.map((ticket) => ticket.ticketNumber).filter(Boolean))]
 
   if (loading) {
-    return <section className="page"><div className="panel state-panel">Loading tickets...</div></section>
+    return <section className="page"><Panel className="state-panel">Loading tickets...</Panel></section>
   }
 
   return (
@@ -73,27 +74,24 @@ export function TicketListPage({ title, subtitle, view, tabs }) {
           <div className="ticket-title-row">
             <h1>{title}</h1>
             {tabs && (
-              <div className="ticket-status-tabs" role="tablist" aria-label="Ticket state">
+              <TabGroup className="mt-2" aria-label="Ticket state">
                 {tabs.map((tab) => (
-                  <button
+                  <Tab
                     key={tab.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeTab === tab.key}
-                    className={activeTab === tab.key ? 'active' : ''}
+                    active={activeTab === tab.key}
                     onClick={() => { setActiveTab((current) => (current === tab.key ? null : tab.key)); setPlantFilter(''); setTicketFilter(''); setMaterialFilter('') }}
                   >
                     {tab.label}
-                  </button>
+                  </Tab>
                 ))}
-              </div>
+              </TabGroup>
             )}
           </div>
           {subtitle && <p className="ticket-page-subtitle">{subtitle}</p>}
         </div>
       </header>
 
-      <div className="panel table-card ticket-table-card">
+      <Panel className="table-card ticket-table-card">
         <div className="filters">
           <label>
             <span>Plant</span>
@@ -153,7 +151,7 @@ export function TicketListPage({ title, subtitle, view, tabs }) {
             <div className="empty">No {activeTabConfig ? activeTabConfig.label.toLowerCase() : 'tickets'} found.</div>
           )}
         </div>
-      </div>
+      </Panel>
     </section>
   )
 }
