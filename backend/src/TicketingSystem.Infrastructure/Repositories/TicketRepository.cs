@@ -33,6 +33,7 @@ public class TicketRepository : ITicketRepository
     {
         return await _context.Tickets
             .Include(t => t.Plant)
+            .Include(t => t.Comments)
             .FirstOrDefaultAsync(t => t.TicketNumber == ticketNumber);
     }
 

@@ -14,7 +14,10 @@ public record TicketDto(
     string Status,
     string PlantName,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    List<CommentDto> Comments);
+
+public record CommentDto(int Id, string Role, string Message, DateTime CreatedAt);
 
 public record PlantDto(int Id, string Code, string Name);
 

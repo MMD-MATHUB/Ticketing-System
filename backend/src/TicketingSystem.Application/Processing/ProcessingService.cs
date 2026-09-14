@@ -45,6 +45,10 @@ public class ProcessingService
             ticket.Status.ToString(),
             ticket.Plant?.Name ?? string.Empty,
             ticket.CreatedAt,
-            ticket.UpdatedAt);
+            ticket.UpdatedAt,
+            ticket.Comments
+                .OrderBy(c => c.CreatedAt)
+                .Select(c => new CommentDto(c.Id, c.Role, c.Message, c.CreatedAt))
+                .ToList());
     }
 }

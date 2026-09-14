@@ -714,7 +714,10 @@ function TicketDetailPage() {
       .then((response) => response.data)
       .then((data) => {
         setTicket(data)
-        setTimelineComments([{ author: 'Requester', message: data.description }])
+        setTimelineComments([
+          { author: 'Requester', message: data.description },
+          ...(data.comments || []).map((c) => ({ author: prettyLabel(c.role), message: c.message })),
+        ])
       })
       .catch((requestError) => {
         setTicket(null)
@@ -767,8 +770,8 @@ function TicketDetailPage() {
       message: comment.trim(),
     })
 
-    setTimelineComments((comments) => [...comments, { author: 'Requester', message: comment.trim() }])
     setComment('')
+    load()
   }
 
   const selectAction = async (action) => {
@@ -777,8 +780,8 @@ function TicketDetailPage() {
       message: `The requester has selected ${action}.`,
     })
 
-    setTimelineComments((comments) => [...comments, { author: 'Requester', message: `The requester has selected ${action}.` }])
     setActionMenuOpen(false)
+    load()
   }
 
   if (loading) {

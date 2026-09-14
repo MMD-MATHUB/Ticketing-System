@@ -12,6 +12,7 @@ public class TicketingSystemDbContext : DbContext
 
     public DbSet<Plant> Plants => Set<Plant>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<TicketComment> TicketComments => Set<TicketComment>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserApplicationAccess> UserApplicationAccess => Set<UserApplicationAccess>();
     public DbSet<AnalysisTask> AnalysisTasks => Set<AnalysisTask>();
@@ -37,6 +38,17 @@ public class TicketingSystemDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(t => t.PlantId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TicketComment>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Role).IsRequired();
+            entity.Property(c => c.Message).IsRequired();
+            entity.HasOne(c => c.Ticket)
+                .WithMany(t => t.Comments)
+                .HasForeignKey(c => c.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<User>(entity =>
