@@ -1,0 +1,8 @@
+[phases.build]
+cmds = [
+  "dotnet restore TicketingSystem.sln",
+  "dotnet publish src/TicketingSystem.Api/TicketingSystem.Api.csproj -c Release -o out"
+]
+
+[start]
+cmd = "dotnet out/TicketingSystem.Api.dll"
